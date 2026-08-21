@@ -6,14 +6,63 @@ body {
   font-family: 'Source Sans Pro', sans-serif;
   background: #0d0d0d;
   background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(40, 20, 0, 0.4) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 30%, rgba(0, 20, 60, 0.3) 0%, transparent 50%);
+    /* Spotlight from stage left */
+    radial-gradient(ellipse at 15% 20%, rgba(212, 166, 71, 0.08) 0%, transparent 50%),
+    /* Spotlight from stage right */
+    radial-gradient(ellipse at 85% 30%, rgba(100, 60, 180, 0.06) 0%, transparent 40%),
+    /* Smoky haze mid */
+    radial-gradient(ellipse at 50% 60%, rgba(60, 40, 20, 0.15) 0%, transparent 55%),
+    /* Vinyl grooves - repeating circles */
+    repeating-radial-gradient(circle at 50% 50%, transparent 0px, transparent 40px, rgba(30, 25, 18, 0.3) 41px, transparent 42px),
+    /* Noise/grain texture */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"),
+    /* Base gradient - dark warm */
+    linear-gradient(180deg, #0d0a08 0%, #1a1410 40%, #0d0a08 100%);
   color: #e8dcc8;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 1rem;
+  position: relative;
+}
+
+/* Animated smoke wisps */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse at 30% 70%, rgba(80, 60, 30, 0.06) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 20%, rgba(40, 30, 60, 0.05) 0%, transparent 35%);
+  animation: smoke-drift 20s ease-in-out infinite alternate;
+}
+
+body::after {
+  background:
+    radial-gradient(ellipse at 60% 80%, rgba(212, 166, 71, 0.03) 0%, transparent 30%),
+    radial-gradient(ellipse at 20% 30%, rgba(150, 80, 40, 0.04) 0%, transparent 40%);
+  animation: smoke-drift 25s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes smoke-drift {
+  0% { transform: translateX(-2%) translateY(-1%); }
+  100% { transform: translateX(2%) translateY(1%); }
+}
+
+/* Ensure content sits above background effects */
+h1, .subtitle, .container, .center, .blues-quote, .pin-overlay, #admin-content {
+  position: relative;
+  z-index: 1;
 }
 
 h1 {
@@ -23,7 +72,13 @@ h1 {
   margin: 1rem 0 0.3rem;
   text-align: center;
   font-size: 2rem;
-  text-shadow: 0 2px 10px rgba(212, 166, 71, 0.3);
+  text-shadow: 0 2px 10px rgba(212, 166, 71, 0.3), 0 0 40px rgba(212, 166, 71, 0.1);
+  animation: title-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes title-glow {
+  0% { text-shadow: 0 2px 10px rgba(212, 166, 71, 0.3), 0 0 40px rgba(212, 166, 71, 0.05); }
+  100% { text-shadow: 0 2px 15px rgba(212, 166, 71, 0.5), 0 0 60px rgba(212, 166, 71, 0.1); }
 }
 
 h2 {
@@ -49,7 +104,11 @@ h2 {
   max-width: 600px;
   width: 100%;
   margin: 1rem auto;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(212,166,71,0.05);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(212,166,71,0.08),
+    0 0 60px rgba(212,166,71,0.02);
+  backdrop-filter: blur(2px);
 }
 
 button {
