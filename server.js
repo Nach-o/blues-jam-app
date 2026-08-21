@@ -83,8 +83,13 @@ app.post("/api/register/individual", (req, res) => {
     "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
   ).run(name, instrument, song || null, position);
 
+  // --- Auto-grouping logic ---
+  // Check if unassigned solo individuals can form a band
+  // Minimum requirement: at least Guitar + Bass + Drums
+  const autoGroupResult = tryAutoGroup();
+
   broadcastUpdate();
-  res.json({ success: true, position });
+  res.json({ success: true, position, autoGrouped: autoGroupResult });
 });
 
 // Register group
@@ -219,6 +224,83 @@ app.delete("/api/queue", requirePin, (req, res) => {
   broadcastUpdate();
   res.json({ success: true });
 });
+
+// --- Auto-grouping logic ---
+// Required instruments to form a band (at least these three)
+const REQUIRED_INSTRUMENTS = ["Guitar", "Bass", "Drums"];
+
+function tryAutoGroup() {
+  // Get all ungrouped solo individuals (entry_type = 'individual', no group_name)
+  const solos = db
+    .prepare(
+      "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
+    )
+    .all();
+
+  if (solos.length < REQUIRED_INSTRUMENTS.length) return null;
+
+  // Check if we have at least one of each required instrument
+  const instrumentMap = {};
+  for (const s of solos) {
+    const instr = s.instrument;
+    if (!instrumentMap[instr]) instrumentMap[instr] = [];
+    instrumentMap[instr].push(s);
+  }
+
+  const hasAllRequired = REQUIRED_INSTRUMENTS.every(
+    (instr) => instrumentMap[instr] && instrumentMap[instr].length > 0
+  );
+
+  if (!hasAllRequired) return null;
+
+  // Pick one person per required instrument (first available), plus any extras (vocals, keys, etc.)
+  const grouped = [];
+  const usedIds = new Set();
+
+  // First, pick one of each required instrument
+  for (const instr of REQUIRED_INSTRUMENTS) {
+    const pick = instrumentMap[instr][0];
+    grouped.push(pick);
+    usedIds.add(pick.id);
+  }
+
+  // Then add any other solos that haven't been picked yet (vocals, harmonica, keyboards, etc.)
+  for (const s of solos) {
+    if (!usedIds.has(s.id)) {
+      grouped.push(s);
+      usedIds.add(s.id);
+    }
+  }
+
+  // Assign them all to the same position (the lowest among them) and mark as group
+  const groupPosition = Math.min(...grouped.map((g) => g.position));
+  const groupNumber = db
+    .prepare(
+      "SELECT COUNT(DISTINCT group_name) as cnt FROM participants WHERE group_name LIKE 'Jam Band %'"
+    )
+    .get();
+  const groupName = `Jam Band #${(groupNumber.cnt || 0) + 1}`;
+
+  const updateStmt = db.prepare(
+    "UPDATE participants SET group_name = ?, entry_type = 'group', position = ? WHERE id = ?"
+  );
+
+  const doGroup = db.transaction(() => {
+    for (const member of grouped) {
+      updateStmt.run(groupName, groupPosition, member.id);
+    }
+  });
+  doGroup();
+
+  // Recompact positions after grouping
+  recompactPositions();
+
+  console.log(
+    `Auto-grouped ${grouped.length} solos into "${groupName}" at position ${groupPosition}`
+  );
+
+  return { groupName, members: grouped.length, position: groupPosition };
+}
 
 // --- Helpers ---
 function recompactPositions() {
