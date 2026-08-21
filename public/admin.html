@@ -31,6 +31,7 @@
             <th>Name</th>
             <th>Instrument</th>
             <th>Song</th>
+            <th>Joined</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -116,12 +117,15 @@
           instrCell = first.instrument;
         }
 
+        const joinedTime = first.created_at ? formatTime(first.created_at) : "\u2014";
+
         return `
           <tr class="${rowClass}">
             <td>${first.position}</td>
             <td>${nameCell}</td>
             <td>${instrCell}</td>
             <td>${first.song || "\u2014"}</td>
+            <td>${joinedTime}</td>
             <td class="actions">
               <button class="small secondary" onclick="moveUp(${first.position})" ${isTop ? "disabled" : ""}>&#8593;</button>
               <button class="small secondary" onclick="moveDown(${first.position})" ${isBottom ? "disabled" : ""}>&#8595;</button>
@@ -132,6 +136,11 @@
           </tr>
         `;
       }).join("");
+    }
+
+    function formatTime(utcStr) {
+      const d = new Date(utcStr + "Z");
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
     async function loadQueue() {

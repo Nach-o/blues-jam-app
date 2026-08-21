@@ -19,11 +19,12 @@
           <th>Name</th>
           <th>Instrument</th>
           <th>Song</th>
+          <th>Joined</th>
           <th>Type</th>
         </tr>
       </thead>
       <tbody id="queue-body">
-        <tr><td colspan="5" class="center">Loading...</td></tr>
+        <tr><td colspan="6" class="center">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -43,7 +44,7 @@
 
     function renderQueue(queue) {
       if (!queue.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="center">No one signed up yet. Be the first!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="center">No one signed up yet. Be the first!</td></tr>';
         return;
       }
 
@@ -86,16 +87,25 @@
           instrCell = first.instrument;
         }
 
+        // Format joined time as HH:MM
+        const joinedTime = first.created_at ? formatTime(first.created_at) : "\u2014";
+
         return `
           <tr class="${rowClass}">
             <td>${first.position}</td>
             <td>${nameCell}</td>
             <td>${instrCell}</td>
             <td>${first.song || "\u2014"}</td>
+            <td>${joinedTime}</td>
             <td>${isGroup ? "Group" : "Solo"}</td>
           </tr>
         `;
       }).join("");
+    }
+
+    function formatTime(utcStr) {
+      const d = new Date(utcStr + "Z");
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
     // Initial load
