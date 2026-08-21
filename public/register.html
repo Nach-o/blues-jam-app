@@ -117,8 +117,16 @@
       const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
       const song = document.getElementById("ind-song").value.trim();
 
-      if (!name || !instrument) {
+      if (!name && !instrument) {
         alert("Please enter your name and select an instrument.");
+        return;
+      }
+      if (!name) {
+        alert("Please enter your name.");
+        return;
+      }
+      if (!instrument) {
+        alert("Please select an instrument.");
         return;
       }
 
@@ -139,15 +147,31 @@
       const song = document.getElementById("group-song").value.trim();
       const rows = document.querySelectorAll(".member-row");
       const members = [];
+      let missingInstrument = false;
 
       rows.forEach(row => {
         const name = row.querySelector(".member-name").value.trim();
         const instrument = row.querySelector(".member-instrument").value;
-        if (name && instrument) members.push({ name, instrument });
+        if (name && !instrument) {
+          missingInstrument = true;
+          row.querySelector(".member-instrument").style.borderColor = "#ff5555";
+        } else if (name && instrument) {
+          members.push({ name, instrument });
+        }
       });
 
-      if (!groupName || members.length === 0) {
-        alert("Please enter a group name and at least one member with an instrument.");
+      if (!groupName) {
+        alert("Please enter a group name.");
+        return;
+      }
+
+      if (missingInstrument) {
+        alert("Please select an instrument for every member.");
+        return;
+      }
+
+      if (members.length === 0) {
+        alert("Please add at least one member with a name and instrument.");
         return;
       }
 
