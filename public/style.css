@@ -147,6 +147,10 @@ tr:nth-child(even) { background: #1a2a4a; }
   z-index: 1000;
 }
 
+.pin-overlay.hidden {
+  display: none;
+}
+
 .pin-box {
   background: #16213e;
   padding: 2rem;
