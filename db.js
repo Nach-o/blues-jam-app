@@ -11,10 +11,18 @@ db.exec(`
     group_name TEXT,
     name TEXT NOT NULL,
     instrument TEXT NOT NULL,
+    song TEXT,
     entry_type TEXT NOT NULL CHECK(entry_type IN ('individual', 'group')),
     position INTEGER NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
   )
 `);
+
+// Migration: add song column if missing (existing deployments)
+try {
+  db.exec("ALTER TABLE participants ADD COLUMN song TEXT");
+} catch (e) {
+  // Column already exists, ignore
+}
 
 module.exports = db;

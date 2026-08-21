@@ -30,6 +30,7 @@
             <th>#</th>
             <th>Name</th>
             <th>Instrument</th>
+            <th>Song</th>
             <th>Type</th>
             <th>Actions</th>
           </tr>
@@ -81,7 +82,7 @@
 
     function renderAdminQueue(queue) {
       if (!queue.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="center">Queue is empty</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="center">Queue is empty</td></tr>';
         return;
       }
 
@@ -98,6 +99,7 @@
             <td>${p.position}</td>
             <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
             <td>${p.instrument}</td>
+            <td>${p.song || "\u2014"}</td>
             <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
             <td class="actions">
               <button class="small secondary" onclick="moveUp(${p.position})" ${isTop ? "disabled" : ""}>&#8593;</button>

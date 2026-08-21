@@ -32,6 +32,7 @@
       <label><input type="radio" name="ind-instrument" value="Harmonica"> Harmonica</label>
       <label><input type="radio" name="ind-instrument" value="Other"> Other</label>
     </div>
+    <input type="text" id="ind-song" placeholder="Song to play (optional)">
     <div class="center">
       <button onclick="submitIndividual()">Submit</button>
       <button class="secondary" onclick="goBack()">Back</button>
@@ -59,6 +60,7 @@
       </div>
     </div>
     <button class="secondary small" onclick="addMember()">+ Add Member</button>
+    <input type="text" id="group-song" placeholder="Song to play (optional)" class="mt-1">
     <div class="center mt-1">
       <button onclick="submitGroup()">Submit Group</button>
       <button class="secondary" onclick="goBack()">Back</button>
@@ -112,6 +114,7 @@
     async function submitIndividual() {
       const name = document.getElementById("ind-name").value.trim();
       const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
+      const song = document.getElementById("ind-song").value.trim();
 
       if (!name || !instrument) {
         alert("Please enter your name and select an instrument.");
@@ -121,17 +124,18 @@
       const res = await fetch("/api/register/individual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, instrument })
+        body: JSON.stringify({ name, instrument, song })
       });
       const data = await res.json();
 
       if (data.success) {
-        showConfirmation(`${name} (${instrument}) \u2014 Position #${data.position}`);
+        showConfirmation(`${name} (${instrument})${song ? ' \u2014 "' + song + '"' : ''} \u2014 Position #${data.position}`);
       }
     }
 
     async function submitGroup() {
       const groupName = document.getElementById("group-name").value.trim();
+      const song = document.getElementById("group-song").value.trim();
       const rows = document.querySelectorAll(".member-row");
       const members = [];
 
@@ -149,12 +153,12 @@
       const res = await fetch("/api/register/group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupName, members })
+        body: JSON.stringify({ groupName, members, song })
       });
       const data = await res.json();
 
       if (data.success) {
-        showConfirmation(`${groupName} (${members.length} member${members.length > 1 ? 's' : ''}) \u2014 Position #${data.position}`);
+        showConfirmation(`${groupName} (${members.length} member${members.length > 1 ? 's' : ''})${song ? ' \u2014 "' + song + '"' : ''} \u2014 Position #${data.position}`);
       }
     }
 

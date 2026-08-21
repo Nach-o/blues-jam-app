@@ -69,7 +69,7 @@ app.get("/api/queue", (req, res) => {
 
 // Register individual
 app.post("/api/register/individual", (req, res) => {
-  const { name, instrument } = req.body;
+  const { name, instrument, song } = req.body;
   if (!name || !instrument) {
     return res.status(400).json({ error: "Name and instrument required" });
   }
@@ -80,8 +80,8 @@ app.post("/api/register/individual", (req, res) => {
   const position = maxPos.max + 1;
 
   db.prepare(
-    "INSERT INTO participants (name, instrument, entry_type, position) VALUES (?, ?, 'individual', ?)"
-  ).run(name, instrument, position);
+    "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
+  ).run(name, instrument, song || null, position);
 
   broadcastUpdate();
   res.json({ success: true, position });
@@ -89,7 +89,7 @@ app.post("/api/register/individual", (req, res) => {
 
 // Register group
 app.post("/api/register/group", (req, res) => {
-  const { groupName, members } = req.body;
+  const { groupName, members, song } = req.body;
   if (!groupName || !members || !members.length) {
     return res
       .status(400)
@@ -102,12 +102,12 @@ app.post("/api/register/group", (req, res) => {
   const position = maxPos.max + 1;
 
   const stmt = db.prepare(
-    "INSERT INTO participants (group_name, name, instrument, entry_type, position) VALUES (?, ?, ?, 'group', ?)"
+    "INSERT INTO participants (group_name, name, instrument, song, entry_type, position) VALUES (?, ?, ?, ?, 'group', ?)"
   );
 
   const insertMany = db.transaction((members) => {
     for (const m of members) {
-      stmt.run(groupName, m.name, m.instrument, position);
+      stmt.run(groupName, m.name, m.instrument, song || null, position);
     }
   });
   insertMany(members);
