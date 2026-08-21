@@ -58,19 +58,41 @@
         }
       }
 
-      tbody.innerHTML = queue.map(p => {
+      // Group by position
+      const rows = [];
+      const seen = new Set();
+      for (const p of queue) {
+        if (seen.has(p.position)) continue;
+        seen.add(p.position);
+        const members = queue.filter(m => m.position === p.position);
+        rows.push(members);
+      }
+
+      tbody.innerHTML = rows.map(members => {
+        const first = members[0];
         let rowClass = "";
-        if (p.status === "played") rowClass = "row-played";
-        else if (p.status === "missing") rowClass = "row-missing";
-        else if (p.position === nextUpPosition) rowClass = "row-next";
+        if (first.status === "played") rowClass = "row-played";
+        else if (first.status === "missing") rowClass = "row-missing";
+        else if (first.position === nextUpPosition) rowClass = "row-next";
+
+        const isGroup = members.length > 1 || first.group_name;
+        let nameCell, instrCell;
+
+        if (isGroup) {
+          nameCell = `<span class="badge">${first.group_name || "Group"}</span> ${members.map(m => m.name).join(", ")}`;
+          instrCell = members.map(m => m.instrument).join(", ");
+        } else {
+          nameCell = first.name;
+          instrCell = first.instrument;
+        }
 
         return `
           <tr class="${rowClass}">
-            <td>${p.position}</td>
-            <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
-            <td>${p.instrument}</td>
-            <td>${p.song || "\u2014"}</td>
-            <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
+            <td>${first.position}</td>
+            <td>${nameCell}</td>
+            <td>${instrCell}</td>
+            <td>${first.song || "\u2014"}</td>
+            <td>${isGroup ? "Group" : "Solo"}</td>
           </tr>
         `;
       }).join("");
