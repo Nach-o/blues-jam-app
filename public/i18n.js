@@ -89,7 +89,7 @@ const translations = {
     addMember: "+ Añadir miembro",
     submitGroup: "Enviar grupo",
     youreIn: "¡Estás dentro!",
-    queueTitle: "Cola del Jam",
+    queueTitle: "Orden de Actuación",
     liveOrder: "Orden de actuación en vivo — se actualiza automáticamente",
     noOneYet: "Nadie se ha apuntado aún. ¡Sé el primero!",
     colPos: "#",
@@ -344,7 +344,7 @@ const translations = {
 
 // Language management
 function getLang() {
-  return localStorage.getItem("blues-jam-lang") || "en";
+  return localStorage.getItem("blues-jam-lang") || "es";
 }
 
 function setLang(lang) {
