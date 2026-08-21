@@ -38,7 +38,7 @@
     <button class="secondary" onclick="window.location.href='queue.html'">View Queue</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>
     // Generate a URL with today's date so the QR changes daily
     const today = new Date();
@@ -55,16 +55,13 @@
     document.getElementById("qr-url").textContent = qrUrl;
 
     // Generate QR
-    const canvas = document.createElement("canvas");
-    document.getElementById("qr-canvas").appendChild(canvas);
-
-    QRCode.toCanvas(canvas, qrUrl, {
+    new QRCode(document.getElementById("qr-canvas"), {
+      text: qrUrl,
       width: 280,
-      margin: 2,
-      color: {
-        dark: "#d4a647",
-        light: "#1a1510"
-      }
+      height: 280,
+      colorDark: "#d4a647",
+      colorLight: "#1a1510",
+      correctLevel: QRCode.CorrectLevel.M
     });
   </script>
 </body>
