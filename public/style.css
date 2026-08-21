@@ -170,3 +170,17 @@ tr:nth-child(even) { background: #1a2a4a; }
 .center { text-align: center; }
 .mt-1 { margin-top: 1rem; }
 .mb-1 { margin-bottom: 1rem; }
+
+/* Status row colors */
+tr.row-played { background: #2a2a3a !important; opacity: 0.5; }
+tr.row-played td { color: #888; }
+tr.row-missing { background: #4a1a1a !important; }
+tr.row-missing td { color: #ff6b6b; }
+tr.row-next { background: #1a3a1a !important; }
+tr.row-next td { color: #6bff6b; }
+
+/* Admin action buttons */
+.btn-played { background: #555 !important; }
+.btn-played:hover { background: #777 !important; }
+.btn-missing { background: #8b0000 !important; }
+.btn-missing:hover { background: #a00 !important; }

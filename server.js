@@ -218,6 +218,24 @@ app.patch("/api/queue/:position/move-down", requirePin, (req, res) => {
   res.json({ success: true });
 });
 
+// Set status (played / missing) for a position
+app.patch("/api/queue/:position/status", requirePin, (req, res) => {
+  const position = parseInt(req.params.position);
+  const { status } = req.body;
+
+  if (!["played", "missing", "waiting"].includes(status)) {
+    return res.status(400).json({ error: "Status must be played, missing, or waiting" });
+  }
+
+  db.prepare("UPDATE participants SET status = ? WHERE position = ?").run(
+    status,
+    position
+  );
+
+  broadcastUpdate();
+  res.json({ success: true });
+});
+
 // Reset entire queue
 app.delete("/api/queue", requirePin, (req, res) => {
   db.prepare("DELETE FROM participants").run();

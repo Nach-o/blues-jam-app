@@ -31,7 +31,6 @@
             <th>Name</th>
             <th>Instrument</th>
             <th>Song</th>
-            <th>Type</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -94,17 +93,19 @@
       tbody.innerHTML = queue.map(p => {
         const isTop = p.position === minPos;
         const isBottom = p.position === maxPos;
+        const rowClass = p.status === "played" ? "row-played" : p.status === "missing" ? "row-missing" : "";
         return `
-          <tr>
+          <tr class="${rowClass}">
             <td>${p.position}</td>
             <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
             <td>${p.instrument}</td>
             <td>${p.song || "\u2014"}</td>
-            <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
             <td class="actions">
               <button class="small secondary" onclick="moveUp(${p.position})" ${isTop ? "disabled" : ""}>&#8593;</button>
               <button class="small secondary" onclick="moveDown(${p.position})" ${isBottom ? "disabled" : ""}>&#8595;</button>
               <button class="small danger" onclick="deleteEntry(${p.id})">&#128465;</button>
+              <button class="small btn-played" onclick="setStatus(${p.position},'played')">Played</button>
+              <button class="small btn-missing" onclick="setStatus(${p.position},'missing')">Missing</button>
             </td>
           </tr>
         `;
@@ -143,6 +144,14 @@
       await fetch(`/api/queue/${id}`, {
         method: "DELETE",
         headers: { "X-Admin-Pin": adminPin }
+      });
+    }
+
+    async function setStatus(position, status) {
+      await fetch(`/api/queue/${position}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Pin": adminPin },
+        body: JSON.stringify({ status })
       });
     }
 

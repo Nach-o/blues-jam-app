@@ -41,15 +41,33 @@
         return;
       }
 
-      tbody.innerHTML = queue.map(p => `
-        <tr>
-          <td>${p.position}</td>
-          <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
-          <td>${p.instrument}</td>
-          <td>${p.song || "\u2014"}</td>
-          <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
-        </tr>
-      `).join("");
+      // Find the first position that is still "waiting" — that's "next up"
+      const positions = [...new Set(queue.map(p => p.position))].sort((a, b) => a - b);
+      let nextUpPosition = null;
+      for (const pos of positions) {
+        const atPos = queue.filter(p => p.position === pos);
+        if (atPos[0].status === "waiting") {
+          nextUpPosition = pos;
+          break;
+        }
+      }
+
+      tbody.innerHTML = queue.map(p => {
+        let rowClass = "";
+        if (p.status === "played") rowClass = "row-played";
+        else if (p.status === "missing") rowClass = "row-missing";
+        else if (p.position === nextUpPosition) rowClass = "row-next";
+
+        return `
+          <tr class="${rowClass}">
+            <td>${p.position}</td>
+            <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
+            <td>${p.instrument}</td>
+            <td>${p.song || "\u2014"}</td>
+            <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
+          </tr>
+        `;
+      }).join("");
     }
 
     // Initial load
