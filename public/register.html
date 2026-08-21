@@ -7,81 +7,107 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>&#127925; Join Stardust Blues Jam &#127925;</h1>
+  <div id="lang-switcher"></div>
+
+  <h1 data-i18n="joinTitle">Join Stardust Blues Jam</h1>
   <p class="subtitle" id="jam-date"></p>
-  <script>
-    document.getElementById("jam-date").textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  </script>
 
   <!-- Step 1: Choose entry type -->
   <div class="container" id="step-type">
-    <h2>How are you joining?</h2>
+    <h2 data-i18n="howJoining">How are you joining?</h2>
     <div class="center mt-1">
-      <button onclick="chooseType('individual')">&#127908; As Individual</button>
-      <button onclick="chooseType('group')">&#127928; As a Group</button>
+      <button onclick="chooseType('individual')" data-i18n="asIndividual">As Individual</button>
+      <button onclick="chooseType('group')" data-i18n="asGroup">As a Group</button>
     </div>
   </div>
 
   <!-- Step 2a: Individual form -->
   <div class="container hidden" id="step-individual">
-    <h2>Individual Sign-Up</h2>
-    <input type="text" id="ind-name" placeholder="Your name">
-    <p class="mt-1">Choose your instrument:</p>
-    <div class="instrument-grid">
-      <label><input type="radio" name="ind-instrument" value="Vocals"> Vocals</label>
-      <label><input type="radio" name="ind-instrument" value="Guitar"> Guitar</label>
-      <label><input type="radio" name="ind-instrument" value="Bass"> Bass</label>
-      <label><input type="radio" name="ind-instrument" value="Drums"> Drums</label>
-      <label><input type="radio" name="ind-instrument" value="Keyboards"> Keyboards</label>
-      <label><input type="radio" name="ind-instrument" value="Harmonica"> Harmonica</label>
-      <label><input type="radio" name="ind-instrument" value="Other"> Other</label>
-    </div>
-    <input type="text" id="ind-song" placeholder="Song to play (optional)">
+    <h2 data-i18n="individualTitle">Individual Sign-Up</h2>
+    <input type="text" id="ind-name" data-i18n="yourName" placeholder="Your name">
+    <p class="mt-1" data-i18n="chooseInstrument">Choose your instrument:</p>
+    <div class="instrument-grid" id="ind-instruments"></div>
+    <input type="text" id="ind-song" data-i18n="songOptional" placeholder="Song to play (optional)">
     <div class="center">
-      <button onclick="submitIndividual()">Submit</button>
-      <button class="secondary" onclick="goBack()">Back</button>
+      <button onclick="submitIndividual()" data-i18n="submit">Submit</button>
+      <button class="secondary" onclick="goBack()" data-i18n="back">Back</button>
     </div>
   </div>
 
   <!-- Step 2b: Group form -->
   <div class="container hidden" id="step-group">
-    <h2>Group Sign-Up</h2>
-    <input type="text" id="group-name" placeholder="Group / Band name">
-    <p class="mt-1">Members:</p>
-    <div id="members-list">
-      <div class="member-row">
-        <input type="text" placeholder="Name" class="member-name">
-        <select class="member-instrument">
-          <option value="">Instrument</option>
-          <option value="Vocals">Vocals</option>
-          <option value="Guitar">Guitar</option>
-          <option value="Bass">Bass</option>
-          <option value="Drums">Drums</option>
-          <option value="Keyboards">Keyboards</option>
-          <option value="Harmonica">Harmonica</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-    </div>
-    <button class="secondary small" onclick="addMember()">+ Add Member</button>
-    <input type="text" id="group-song" placeholder="Song to play (optional)" class="mt-1">
+    <h2 data-i18n="groupTitle">Group Sign-Up</h2>
+    <input type="text" id="group-name" data-i18n="groupName" placeholder="Group / Band name">
+    <p class="mt-1" data-i18n="members">Members:</p>
+    <div id="members-list"></div>
+    <button class="secondary small" onclick="addMember()" data-i18n="addMember">+ Add Member</button>
+    <input type="text" id="group-song" data-i18n="songOptional" placeholder="Song to play (optional)" class="mt-1">
     <div class="center mt-1">
-      <button onclick="submitGroup()">Submit Group</button>
-      <button class="secondary" onclick="goBack()">Back</button>
+      <button onclick="submitGroup()" data-i18n="submitGroup">Submit Group</button>
+      <button class="secondary" onclick="goBack()" data-i18n="back">Back</button>
     </div>
   </div>
 
   <!-- Confirmation -->
   <div class="container hidden" id="step-done">
-    <h2>You're in! &#127926;</h2>
+    <h2 data-i18n="youreIn">You're in!</h2>
     <p class="center mt-1" id="confirm-msg"></p>
     <div class="center mt-1">
-      <button onclick="window.location.href='queue.html'">View Queue</button>
-      <button class="secondary" onclick="window.location.href='index.html'">Home</button>
+      <button onclick="window.location.href='queue.html'" data-i18n="viewQueue">View Queue</button>
+      <button class="secondary" onclick="window.location.href='index.html'" data-i18n="home">Home</button>
     </div>
   </div>
 
+  <script src="i18n.js"></script>
   <script>
+    const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
+
+    // Display date
+    document.getElementById("jam-date").textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Build instrument radio grid
+    function buildInstrumentGrid() {
+      const grid = document.getElementById("ind-instruments");
+      grid.innerHTML = INSTRUMENTS.map(key => `
+        <label><input type="radio" name="ind-instrument" value="${t(key)}"> ${t(key)}</label>
+      `).join("");
+    }
+
+    // Build instrument select options
+    function instrumentOptions() {
+      return `<option value="">${t("instrumentPlaceholder")}</option>` +
+        INSTRUMENTS.map(key => `<option value="${t(key)}">${t(key)}</option>`).join("");
+    }
+
+    function addMember() {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML = `
+        <input type="text" placeholder="${t("namePlaceholder")}" class="member-name">
+        <select class="member-instrument">${instrumentOptions()}</select>
+      `;
+      document.getElementById("members-list").appendChild(row);
+    }
+
+    // Initial member row + instrument grid
+    document.addEventListener("DOMContentLoaded", () => {
+      buildInstrumentGrid();
+      addMember();
+    });
+
+    // Re-build on language change
+    const origSetLang = setLang;
+    setLang = function(lang) {
+      origSetLang(lang);
+      buildInstrumentGrid();
+      // Rebuild member rows instruments
+      document.querySelectorAll(".member-instrument").forEach(sel => {
+        const val = sel.value;
+        sel.innerHTML = instrumentOptions();
+        sel.value = val;
+      });
+    };
+
     function chooseType(type) {
       document.getElementById("step-type").classList.add("hidden");
       if (type === "individual") {
@@ -96,42 +122,14 @@
       document.getElementById("step-type").classList.remove("hidden");
     }
 
-    function addMember() {
-      const row = document.createElement("div");
-      row.className = "member-row";
-      row.innerHTML = `
-        <input type="text" placeholder="Name" class="member-name">
-        <select class="member-instrument">
-          <option value="">Instrument</option>
-          <option value="Vocals">Vocals</option>
-          <option value="Guitar">Guitar</option>
-          <option value="Bass">Bass</option>
-          <option value="Drums">Drums</option>
-          <option value="Keyboards">Keyboards</option>
-          <option value="Harmonica">Harmonica</option>
-          <option value="Other">Other</option>
-        </select>
-      `;
-      document.getElementById("members-list").appendChild(row);
-    }
-
     async function submitIndividual() {
       const name = document.getElementById("ind-name").value.trim();
       const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
       const song = document.getElementById("ind-song").value.trim();
 
-      if (!name && !instrument) {
-        alert("Please enter your name and select an instrument.");
-        return;
-      }
-      if (!name) {
-        alert("Please enter your name.");
-        return;
-      }
-      if (!instrument) {
-        alert("Please select an instrument.");
-        return;
-      }
+      if (!name && !instrument) { alert(t("alertNameInstrument")); return; }
+      if (!name) { alert(t("alertName")); return; }
+      if (!instrument) { alert(t("alertInstrument")); return; }
 
       const res = await fetch("/api/register/individual", {
         method: "POST",
@@ -139,9 +137,8 @@
         body: JSON.stringify({ name, instrument, song })
       });
       const data = await res.json();
-
       if (data.success) {
-        showConfirmation(`${name} (${instrument})${song ? ' \u2014 "' + song + '"' : ''} \u2014 Position #${data.position}`);
+        showConfirmation(`${name} (${instrument})${song ? ' \u2014 "' + song + '"' : ''} \u2014 #${data.position}`);
       }
     }
 
@@ -163,20 +160,9 @@
         }
       });
 
-      if (!groupName) {
-        alert("Please enter a group name.");
-        return;
-      }
-
-      if (missingInstrument) {
-        alert("Please select an instrument for every member.");
-        return;
-      }
-
-      if (members.length === 0) {
-        alert("Please add at least one member with a name and instrument.");
-        return;
-      }
+      if (!groupName) { alert(t("alertGroupName")); return; }
+      if (missingInstrument) { alert(t("alertMemberInstrument")); return; }
+      if (members.length === 0) { alert(t("alertOneMember")); return; }
 
       const res = await fetch("/api/register/group", {
         method: "POST",
@@ -184,9 +170,8 @@
         body: JSON.stringify({ groupName, members, song })
       });
       const data = await res.json();
-
       if (data.success) {
-        showConfirmation(`${groupName} (${members.length} member${members.length > 1 ? 's' : ''})${song ? ' \u2014 "' + song + '"' : ''} \u2014 Position #${data.position}`);
+        showConfirmation(`${groupName} (${members.length}) \u2014 #${data.position}`);
       }
     }
 

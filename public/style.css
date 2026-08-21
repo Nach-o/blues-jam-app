@@ -286,3 +286,14 @@ tr.row-next td { color: #7cdf7c; font-weight: 600; }
   font-style: normal;
   font-weight: 600;
 }
+
+/* Language switcher */
+#lang-switcher {
+  text-align: center;
+  margin: 0.5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.lang-btn { font-size: 0.75rem !important; padding: 0.3rem 0.5rem !important; margin: 0.15rem !important; }
+.lang-btn.active-lang { background: #d4a647 !important; color: #1a1510 !important; border-color: #d4a647 !important; }

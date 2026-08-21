@@ -24,8 +24,10 @@
   </style>
 </head>
 <body>
-  <h1>&#127925; Stardust Blues Jam &#127925;</h1>
-  <p class="subtitle">Show this QR to let people join tonight's jam</p>
+  <div id="lang-switcher"></div>
+
+  <h1 data-i18n="showQRTitle">Stardust Blues Jam</h1>
+  <p class="subtitle" data-i18n="showQRSubtitle">Show this QR to let people join tonight's jam</p>
 
   <div class="container">
     <p class="date-display" id="today-date"></p>
@@ -34,9 +36,11 @@
   </div>
 
   <div class="center mt-1">
-    <button onclick="window.location.href='index.html'">Home</button>
-    <button class="secondary" onclick="window.location.href='queue.html'">View Queue</button>
+    <button onclick="window.location.href='index.html'" data-i18n="home">Home</button>
+    <button class="secondary" onclick="window.location.href='queue.html'" data-i18n="viewQueue">View Queue</button>
   </div>
+
+  <script src="i18n.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>

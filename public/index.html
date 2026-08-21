@@ -7,29 +7,32 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>&#127925; Blues Jam Session &#127925;</h1>
-  <p class="subtitle">"The blues is the roots, everything else is the fruits." &mdash; Willie Dixon</p>
+  <div id="lang-switcher"></div>
+
+  <h1 data-i18n="title">Blues Jam Session</h1>
+  <p class="subtitle" data-i18n="subtitle">"The blues is the roots, everything else is the fruits." — Willie Dixon</p>
 
   <div class="container">
-    <p class="center mb-1">Scan the venue QR code to join the jam!</p>
+    <p class="center mb-1" data-i18n="scanPrompt">Scan the venue QR code to join the jam!</p>
     <div id="qr-reader"></div>
-    <p id="qr-result" class="center mt-1" style="color:#e94560;"></p>
+    <p id="qr-result" class="center mt-1" style="color:#d4a647;"></p>
 
     <div class="center mt-1">
-      <p style="color:#aaa;">Or skip scanning and join directly:</p>
-      <button onclick="window.location.href='register.html'">Join Stardust Blues Jam</button>
+      <p style="color:#aaa;" data-i18n="skipScan">Or skip scanning and join directly:</p>
+      <button onclick="window.location.href='register.html'" data-i18n="joinBtn">Join Stardust Blues Jam</button>
     </div>
   </div>
 
   <div class="center mt-1">
-    <button class="secondary" onclick="window.location.href='queue.html'">View Queue</button>
-    <button class="secondary" onclick="window.location.href='show-qr.html'">Show QR</button>
-    <button class="secondary" onclick="window.location.href='help.html'">How it works</button>
-    <button class="secondary" onclick="window.location.href='admin.html'">Admin</button>
+    <button class="secondary" onclick="window.location.href='queue.html'" data-i18n="viewQueue">View Queue</button>
+    <button class="secondary" onclick="window.location.href='show-qr.html'" data-i18n="showQR">Show QR</button>
+    <button class="secondary" onclick="window.location.href='help.html'" data-i18n="howItWorks">How it works</button>
+    <button class="secondary" onclick="window.location.href='admin.html'" data-i18n="admin">Admin</button>
   </div>
 
   <div class="blues-quote" id="daily-quote"></div>
 
+  <script src="i18n.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     // Daily rotating blues quotes
@@ -43,30 +46,23 @@
       { text: "People think I'm a big blues man, but I'm not.", author: "B.B. King" },
       { text: "Everybody wants to know why I sing the blues.", author: "B.B. King" },
       { text: "Blues are the songs of despair, but gospel songs are the songs of hope.", author: "Thomas A. Dorsey" },
-      { text: "I got the blues thinking of the future, so I left off and made some marmalade.", author: "D.H. Lawrence" },
       { text: "Life is like a guitar string. If you pull it too tight, it breaks.", author: "Albert King" },
       { text: "You got to love what's loveable and hate what's hateable.", author: "Howlin' Wolf" },
-      { text: "Woke up this morning, my baby was gone.", author: "Robert Johnson" },
       { text: "The blues is a low-down achin' heart disease.", author: "Robert Johnson" },
       { text: "If you don't think you have the blues, just keep living.", author: "Buddy Guy" },
-      { text: "I don't play anything but the blues, but now I could never make no money on nothin' but the blues.", author: "John Lee Hooker" },
       { text: "That's what the blues is — it ain't nothing but a good man feeling bad.", author: "Leon Redbone" },
       { text: "Sometimes you have to play a long time to be able to play like yourself.", author: "Miles Davis" },
       { text: "Music is your own experience, your own thoughts, your wisdom.", author: "Charlie Parker" },
       { text: "Playing guitar is like telling the truth — you never have to worry about repeating yourself.", author: "B.B. King" },
       { text: "I don't read music. I just feel it.", author: "Stevie Ray Vaughan" },
       { text: "Blues is the bedrock of everything I do.", author: "Eric Clapton" },
-      { text: "The blues is nothing but a good woman on your mind.", author: "Bleeding Gums Murphy" },
       { text: "When things go wrong, wrong with you, it hurts me too.", author: "Elmore James" },
-      { text: "I've always felt that blues, rock and roll, and country are just about a beat apart.", author: "Waylon Jennings" },
       { text: "You can't play the blues until you've paid your dues.", author: "Keb' Mo'" },
       { text: "One chord is fine. Two chords are pushing it. Three chords and you're into jazz.", author: "Lou Reed" },
       { text: "The blues is like a planet. It's an enormous topic.", author: "Billy Gibbons" },
-      { text: "Blues means what milk does to a baby. Blues is what the spirit is to the minister.", author: "Townes Van Zandt" },
       { text: "I'm just a regular person who plays the guitar. Nothing more, nothing less.", author: "Gary Clark Jr." }
     ];
 
-    // Pick quote based on day of year (changes daily, same quote all day)
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     const todayQuote = bluesQuotes[dayOfYear % bluesQuotes.length];
     document.getElementById("daily-quote").innerHTML = `"${todayQuote.text}"<span class="author">&mdash; ${todayQuote.author}</span>`;
@@ -87,9 +83,7 @@
           window.location.href = "register.html";
         }
       }, 800);
-    }, (error) => {
-      // Scanning in progress
-    });
+    }, (error) => {});
   </script>
 </body>
 </html>
