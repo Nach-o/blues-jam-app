@@ -10,7 +10,6 @@
   <div id="lang-switcher"></div>
 
   <h1 data-i18n="title">Blues Jam Session</h1>
-  <p class="subtitle" data-i18n="subtitle">"The blues is the roots, everything else is the fruits." — Willie Dixon</p>
 
   <div class="container">
     <p class="center mb-1" data-i18n="scanPrompt">Scan the venue QR code to join the jam!</p>
@@ -38,12 +37,9 @@
     // Daily rotating blues quotes
     const bluesQuotes = [
       { text: "Blues is easy to play, but hard to feel.", author: "Jimi Hendrix" },
-      { text: "The blues is the roots, everything else is the fruits.", author: "Willie Dixon" },
-      { text: "I've been down so long, it looks like up to me.", author: "Muddy Waters" },
       { text: "The blues tells a story. Every line of the blues has a meaning.", author: "John Lee Hooker" },
       { text: "Blues is a natural fact, is something that a fellow lives.", author: "Son House" },
       { text: "The blues had a baby and they called it rock and roll.", author: "Muddy Waters" },
-      { text: "People think I'm a big blues man, but I'm not.", author: "B.B. King" },
       { text: "Everybody wants to know why I sing the blues.", author: "B.B. King" },
       { text: "Blues are the songs of despair, but gospel songs are the songs of hope.", author: "Thomas A. Dorsey" },
       { text: "Life is like a guitar string. If you pull it too tight, it breaks.", author: "Albert King" },
@@ -60,7 +56,10 @@
       { text: "You can't play the blues until you've paid your dues.", author: "Keb' Mo'" },
       { text: "One chord is fine. Two chords are pushing it. Three chords and you're into jazz.", author: "Lou Reed" },
       { text: "The blues is like a planet. It's an enormous topic.", author: "Billy Gibbons" },
-      { text: "I'm just a regular person who plays the guitar. Nothing more, nothing less.", author: "Gary Clark Jr." }
+      { text: "I'm just a regular person who plays the guitar. Nothing more, nothing less.", author: "Gary Clark Jr." },
+      { text: "I been in the blues all my life. I'm still delivering because I got a long memory.", author: "Muddy Waters" },
+      { text: "You have to open up and let the music flow through you.", author: "John Mayall" },
+      { text: "The beautiful thing about the blues is that it is healing.", author: "Shemekia Copeland" }
     ];
 
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
