@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join the Jam</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>&#127925; Join the Jam &#127925;</h1>
+
+  <!-- Step 1: Choose entry type -->
+  <div class="container" id="step-type">
+    <h2>How are you joining?</h2>
+    <div class="center mt-1">
+      <button onclick="chooseType('individual')">&#127908; As Individual</button>
+      <button onclick="chooseType('group')">&#127928; As a Group</button>
+    </div>
+  </div>
+
+  <!-- Step 2a: Individual form -->
+  <div class="container hidden" id="step-individual">
+    <h2>Individual Sign-Up</h2>
+    <input type="text" id="ind-name" placeholder="Your name">
+    <p class="mt-1">Choose your instrument:</p>
+    <div class="instrument-grid">
+      <label><input type="radio" name="ind-instrument" value="Vocals"> Vocals</label>
+      <label><input type="radio" name="ind-instrument" value="Guitar"> Guitar</label>
+      <label><input type="radio" name="ind-instrument" value="Bass"> Bass</label>
+      <label><input type="radio" name="ind-instrument" value="Drums"> Drums</label>
+      <label><input type="radio" name="ind-instrument" value="Keyboards"> Keyboards</label>
+      <label><input type="radio" name="ind-instrument" value="Harmonica"> Harmonica</label>
+      <label><input type="radio" name="ind-instrument" value="Other"> Other</label>
+    </div>
+    <div class="center">
+      <button onclick="submitIndividual()">Submit</button>
+      <button class="secondary" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <!-- Step 2b: Group form -->
+  <div class="container hidden" id="step-group">
+    <h2>Group Sign-Up</h2>
+    <input type="text" id="group-name" placeholder="Group / Band name">
+    <p class="mt-1">Members:</p>
+    <div id="members-list">
+      <div class="member-row">
+        <input type="text" placeholder="Name" class="member-name">
+        <select class="member-instrument">
+          <option value="">Instrument</option>
+          <option value="Vocals">Vocals</option>
+          <option value="Guitar">Guitar</option>
+          <option value="Bass">Bass</option>
+          <option value="Drums">Drums</option>
+          <option value="Keyboards">Keyboards</option>
+          <option value="Harmonica">Harmonica</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <button class="secondary small" onclick="addMember()">+ Add Member</button>
+    <div class="center mt-1">
+      <button onclick="submitGroup()">Submit Group</button>
+      <button class="secondary" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <!-- Confirmation -->
+  <div class="container hidden" id="step-done">
+    <h2>You're in! &#127926;</h2>
+    <p class="center mt-1" id="confirm-msg"></p>
+    <div class="center mt-1">
+      <button onclick="window.location.href='queue.html'">View Queue</button>
+      <button class="secondary" onclick="window.location.href='index.html'">Home</button>
+    </div>
+  </div>
+
+  <script>
+    function chooseType(type) {
+      document.getElementById("step-type").classList.add("hidden");
+      if (type === "individual") {
+        document.getElementById("step-individual").classList.remove("hidden");
+      } else {
+        document.getElementById("step-group").classList.remove("hidden");
+      }
+    }
+
+    function goBack() {
+      document.querySelectorAll(".container").forEach(c => c.classList.add("hidden"));
+      document.getElementById("step-type").classList.remove("hidden");
+    }
+
+    function addMember() {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML = `
+        <input type="text" placeholder="Name" class="member-name">
+        <select class="member-instrument">
+          <option value="">Instrument</option>
+          <option value="Vocals">Vocals</option>
+          <option value="Guitar">Guitar</option>
+          <option value="Bass">Bass</option>
+          <option value="Drums">Drums</option>
+          <option value="Keyboards">Keyboards</option>
+          <option value="Harmonica">Harmonica</option>
+          <option value="Other">Other</option>
+        </select>
+      `;
+      document.getElementById("members-list").appendChild(row);
+    }
+
+    async function submitIndividual() {
+      const name = document.getElementById("ind-name").value.trim();
+      const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
+
+      if (!name || !instrument) {
+        alert("Please enter your name and select an instrument.");
+        return;
+      }
+
+      const res = await fetch("/api/register/individual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, instrument })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showConfirmation(`${name} (${instrument}) \u2014 Position #${data.position}`);
+      }
+    }
+
+    async function submitGroup() {
+      const groupName = document.getElementById("group-name").value.trim();
+      const rows = document.querySelectorAll(".member-row");
+      const members = [];
+
+      rows.forEach(row => {
+        const name = row.querySelector(".member-name").value.trim();
+        const instrument = row.querySelector(".member-instrument").value;
+        if (name && instrument) members.push({ name, instrument });
+      });
+
+      if (!groupName || members.length === 0) {
+        alert("Please enter a group name and at least one member with an instrument.");
+        return;
+      }
+
+      const res = await fetch("/api/register/group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupName, members })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showConfirmation(`${groupName} (${members.length} member${members.length > 1 ? 's' : ''}) \u2014 Position #${data.position}`);
+      }
+    }
+
+    function showConfirmation(msg) {
+      document.querySelectorAll(".container").forEach(c => c.classList.add("hidden"));
+      document.getElementById("step-done").classList.remove("hidden");
+      document.getElementById("confirm-msg").textContent = msg;
+    }
+  </script>
+</body>
+</html>

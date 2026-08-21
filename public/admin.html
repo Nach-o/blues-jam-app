@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Blues Jam</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PIN overlay -->
+  <div class="pin-overlay" id="pin-overlay">
+    <div class="pin-box">
+      <h2>Admin Access</h2>
+      <p style="color:#aaa; margin-top:0.5rem;">Enter the admin PIN</p>
+      <input type="password" id="pin-input" maxlength="10" placeholder="PIN">
+      <p id="pin-error" style="color:#e94560; display:none;">Wrong PIN. Try again.</p>
+      <button onclick="verifyPin()">Enter</button>
+    </div>
+  </div>
+
+  <!-- Admin content (hidden until PIN verified) -->
+  <div id="admin-content" class="hidden">
+    <h1>&#127925; Admin Panel &#127925;</h1>
+
+    <div class="container">
+      <p class="center mb-1" style="color:#aaa;">Manage the jam queue &mdash; reorder, delete, or reset</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Instrument</th>
+            <th>Type</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-queue-body">
+          <tr><td colspan="5" class="center">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="center mt-1">
+        <button class="danger" onclick="resetQueue()">Reset Entire Queue</button>
+      </div>
+    </div>
+
+    <div class="center mt-1">
+      <button onclick="window.location.href='index.html'">Home</button>
+      <button class="secondary" onclick="window.location.href='queue.html'">Public Queue</button>
+    </div>
+  </div>
+
+  <script>
+    let adminPin = "";
+    const tbody = document.getElementById("admin-queue-body");
+
+    // PIN entry on Enter key
+    document.getElementById("pin-input").addEventListener("keyup", (e) => {
+      if (e.key === "Enter") verifyPin();
+    });
+
+    async function verifyPin() {
+      const pin = document.getElementById("pin-input").value;
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin })
+      });
+
+      if (res.ok) {
+        adminPin = pin;
+        document.getElementById("pin-overlay").classList.add("hidden");
+        document.getElementById("admin-content").classList.remove("hidden");
+        loadQueue();
+        connectSSE();
+      } else {
+        document.getElementById("pin-error").style.display = "block";
+        document.getElementById("pin-input").value = "";
+      }
+    }
+
+    function renderAdminQueue(queue) {
+      if (!queue.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="center">Queue is empty</td></tr>';
+        return;
+      }
+
+      // Group by position for move buttons
+      const positions = [...new Set(queue.map(p => p.position))].sort((a, b) => a - b);
+      const maxPos = Math.max(...positions);
+      const minPos = Math.min(...positions);
+
+      tbody.innerHTML = queue.map(p => {
+        const isTop = p.position === minPos;
+        const isBottom = p.position === maxPos;
+        return `
+          <tr>
+            <td>${p.position}</td>
+            <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
+            <td>${p.instrument}</td>
+            <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
+            <td class="actions">
+              <button class="small secondary" onclick="moveUp(${p.position})" ${isTop ? "disabled" : ""}>&#8593;</button>
+              <button class="small secondary" onclick="moveDown(${p.position})" ${isBottom ? "disabled" : ""}>&#8595;</button>
+              <button class="small danger" onclick="deleteEntry(${p.id})">&#128465;</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function loadQueue() {
+      const res = await fetch("/api/queue");
+      const queue = await res.json();
+      renderAdminQueue(queue);
+    }
+
+    function connectSSE() {
+      const evtSource = new EventSource("/api/events");
+      evtSource.onmessage = (event) => {
+        renderAdminQueue(JSON.parse(event.data));
+      };
+    }
+
+    async function moveUp(position) {
+      await fetch(`/api/queue/${position}/move-up`, {
+        method: "PATCH",
+        headers: { "X-Admin-Pin": adminPin }
+      });
+    }
+
+    async function moveDown(position) {
+      await fetch(`/api/queue/${position}/move-down`, {
+        method: "PATCH",
+        headers: { "X-Admin-Pin": adminPin }
+      });
+    }
+
+    async function deleteEntry(id) {
+      if (!confirm("Remove this entry from the queue?")) return;
+      await fetch(`/api/queue/${id}`, {
+        method: "DELETE",
+        headers: { "X-Admin-Pin": adminPin }
+      });
+    }
+
+    async function resetQueue() {
+      if (!confirm("This will clear the entire queue. Are you sure?")) return;
+      await fetch("/api/queue", {
+        method: "DELETE",
+        headers: { "X-Admin-Pin": adminPin }
+      });
+    }
+  </script>
+</body>
+</html>

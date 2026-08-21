@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jam Queue</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>&#127925; Jam Queue &#127925;</h1>
+
+  <div class="container">
+    <p class="center mb-1" style="color:#aaa;">Live performance order &mdash; updates automatically</p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Instrument</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody id="queue-body">
+        <tr><td colspan="4" class="center">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="center mt-1">
+    <button onclick="window.location.href='index.html'">Home</button>
+    <button class="secondary" onclick="window.location.href='register.html'">Join the Jam</button>
+  </div>
+
+  <script>
+    const tbody = document.getElementById("queue-body");
+
+    function renderQueue(queue) {
+      if (!queue.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="center">No one signed up yet. Be the first!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = queue.map(p => `
+        <tr>
+          <td>${p.position}</td>
+          <td>${p.group_name ? `<span class="badge">${p.group_name}</span>` : ""}${p.name}</td>
+          <td>${p.instrument}</td>
+          <td>${p.entry_type === "group" ? "Group" : "Solo"}</td>
+        </tr>
+      `).join("");
+    }
+
+    // Initial load
+    fetch("/api/queue").then(r => r.json()).then(renderQueue);
+
+    // Live updates via SSE
+    const evtSource = new EventSource("/api/events");
+    evtSource.onmessage = (event) => {
+      renderQueue(JSON.parse(event.data));
+    };
+  </script>
+</body>
+</html>

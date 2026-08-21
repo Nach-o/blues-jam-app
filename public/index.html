@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blues Jam Session</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>&#127925; Blues Jam Session &#127925;</h1>
+
+  <div class="container">
+    <p class="center mb-1">Scan the venue QR code to join the jam!</p>
+    <div id="qr-reader"></div>
+    <p id="qr-result" class="center mt-1" style="color:#e94560;"></p>
+
+    <div class="center mt-1">
+      <p style="color:#aaa;">Or skip scanning and join directly:</p>
+      <button onclick="window.location.href='register.html'">Join the Jam</button>
+    </div>
+  </div>
+
+  <div class="center mt-1">
+    <button class="secondary" onclick="window.location.href='queue.html'">View Queue</button>
+    <button class="secondary" onclick="window.location.href='admin.html'">Admin</button>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    const scanner = new Html5QrcodeScanner("qr-reader", {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    });
+
+    scanner.render((decodedText) => {
+      scanner.clear();
+      document.getElementById("qr-result").textContent = "QR Scanned! Redirecting...";
+      setTimeout(() => {
+        // If the QR contains a URL, go there; otherwise go to register
+        if (decodedText.startsWith("http")) {
+          window.location.href = decodedText;
+        } else {
+          window.location.href = "register.html";
+        }
+      }, 800);
+    }, (error) => {
+      // Scanning in progress
+    });
+  </script>
+</body>
+</html>
