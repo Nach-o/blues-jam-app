@@ -60,7 +60,7 @@
     });
 
     async function verifyPin() {
-      const pin = document.getElementById("pin-input").value;
+      const pin = document.getElementById("pin-input").value.trim();
       const res = await fetch("/api/admin/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

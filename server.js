@@ -47,9 +47,12 @@ function requirePin(req, res, next) {
 // Verify PIN endpoint
 app.post("/api/admin/verify", (req, res) => {
   const { pin } = req.body;
-  if (pin === ADMIN_PIN) {
+  const submitted = String(pin || "").trim();
+  const expected = String(ADMIN_PIN).trim();
+  if (submitted === expected) {
     res.json({ success: true });
   } else {
+    console.log(`PIN rejected: got "${submitted}", expected "${expected}"`);
     res.status(401).json({ error: "Invalid PIN" });
   }
 });
