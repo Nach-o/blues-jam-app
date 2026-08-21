@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How it works - Stardust Blues Jam</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .lang-selector { text-align: center; margin: 1rem 0; }
+    .help-content { display: none; }
+    .help-content.active { display: block; }
+    .help-content h3 { color: #d4a647; margin: 1.2rem 0 0.5rem; font-family: 'Playfair Display', serif; }
+    .help-content p, .help-content li { line-height: 1.6; margin-bottom: 0.4rem; }
+    .help-content ul { padding-left: 1.2rem; margin-bottom: 1rem; }
+    .color-sample { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 0.4rem; }
+    .color-green { background: #4caf50; }
+    .color-grey { background: #555; }
+    .color-red { background: #d32f2f; }
+  </style>
+</head>
+<body>
+  <h1>&#127925; How it works &#127925;</h1>
+
+  <div class="lang-selector">
+    <button onclick="showLang('en')" id="btn-en">English</button>
+    <button class="secondary" onclick="showLang('es')" id="btn-es">Espa&ntilde;ol</button>
+  </div>
+
+  <!-- ENGLISH -->
+  <div class="container help-content active" id="help-en">
+    <h3>For musicians</h3>
+    <ul>
+      <li>Scan the venue QR code with your phone or tap "Join Stardust Blues Jam"</li>
+      <li>Choose how you're joining: <strong>Individual</strong> or <strong>Group</strong></li>
+      <li>Enter your name, select your instrument (required), and optionally a song</li>
+      <li>Submit and you're in the queue!</li>
+    </ul>
+
+    <h3>The queue</h3>
+    <p>The table shows the live performance order. It updates automatically for everyone watching — no refresh needed.</p>
+
+    <h3>Color coding</h3>
+    <ul>
+      <li><span class="color-sample color-green"></span> <strong>Green</strong> — next up to play</li>
+      <li><span class="color-sample color-grey"></span> <strong>Grey (strikethrough)</strong> — already played</li>
+      <li><span class="color-sample color-red"></span> <strong>Red</strong> — marked as missing / no-show</li>
+      <li>No color — waiting for their turn</li>
+    </ul>
+
+    <h3>Auto-grouping of solos</h3>
+    <p>When individuals sign up separately, the app merges them into a band automatically once the minimum requirement is met: at least one <strong>Guitar</strong> + one <strong>Bass</strong> + one <strong>Drums</strong>.</p>
+    <p>Example:</p>
+    <ul>
+      <li>Person A signs up solo — Guitar</li>
+      <li>Person B signs up solo — Bass</li>
+      <li>Person C signs up solo — Drums → <strong>merge triggered!</strong></li>
+    </ul>
+    <p>All solos (including any extras like Vocals or Keyboards) get merged into "Jam Band #1". The group takes the position of whoever signed up first (earliest in the queue).</p>
+    <p>After the merge, a new cycle starts. The next Guitar + Bass + Drums combo will form "Jam Band #2", and so on.</p>
+  </div>
+
+  <!-- SPANISH -->
+  <div class="container help-content" id="help-es">
+    <h3>Para los m&uacute;sicos</h3>
+    <ul>
+      <li>Escanea el c&oacute;digo QR del local con tu m&oacute;vil o pulsa "Join Stardust Blues Jam"</li>
+      <li>Elige c&oacute;mo entras: <strong>Individual</strong> o <strong>Grupo</strong></li>
+      <li>Pon tu nombre, selecciona tu instrumento (obligatorio) y opcionalmente una canci&oacute;n</li>
+      <li>Confirma y entras en la cola</li>
+    </ul>
+
+    <h3>La cola</h3>
+    <p>La tabla muestra en tiempo real el orden de actuaci&oacute;n. Se actualiza autom&aacute;ticamente para todos — sin necesidad de refrescar.</p>
+
+    <h3>C&oacute;digo de colores</h3>
+    <ul>
+      <li><span class="color-sample color-green"></span> <strong>Verde</strong> — siguiente en tocar</li>
+      <li><span class="color-sample color-grey"></span> <strong>Gris (tachado)</strong> — ya ha tocado</li>
+      <li><span class="color-sample color-red"></span> <strong>Rojo</strong> — no se ha presentado</li>
+      <li>Sin color — esperando su turno</li>
+    </ul>
+
+    <h3>Auto-agrupaci&oacute;n de individuales</h3>
+    <p>Cuando se apuntan individuales por separado, la app los agrupa autom&aacute;ticamente en una banda cuando se cumplen los requisitos m&iacute;nimos: al menos un <strong>Guitarra</strong> + un <strong>Bajo</strong> + una <strong>Bater&iacute;a</strong>.</p>
+    <p>Ejemplo:</p>
+    <ul>
+      <li>Persona A se apunta sola — Guitarra</li>
+      <li>Persona B se apunta sola — Bajo</li>
+      <li>Persona C se apunta sola — Bater&iacute;a → <strong>se dispara el merge</strong></li>
+    </ul>
+    <p>Todos los individuales (incluyendo extras como Voz o Teclados) se fusionan en "Jam Band #1". El grupo ocupa la posici&oacute;n del primer miembro que se apunt&oacute;.</p>
+    <p>Tras el merge, empieza un nuevo ciclo. La siguiente combinaci&oacute;n de Guitarra + Bajo + Bater&iacute;a formar&aacute; "Jam Band #2", y as&iacute; sucesivamente.</p>
+  </div>
+
+  <div class="center mt-1">
+    <button onclick="window.location.href='index.html'">Home</button>
+  </div>
+
+  <script>
+    function showLang(lang) {
+      document.getElementById("help-en").classList.toggle("active", lang === "en");
+      document.getElementById("help-es").classList.toggle("active", lang === "es");
+      document.getElementById("btn-en").classList.toggle("secondary", lang !== "en");
+      document.getElementById("btn-es").classList.toggle("secondary", lang !== "es");
+    }
+  </script>
+</body>
+</html>
