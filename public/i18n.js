@@ -360,10 +360,13 @@ function t(key) {
 function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.getAttribute("data-i18n");
+    const val = t(key);
     if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-      el.placeholder = t(key);
+      el.placeholder = val;
+    } else if (el.tagName === "OPTION") {
+      el.textContent = val;
     } else {
-      el.textContent = t(key);
+      el.textContent = val;
     }
   });
   // Update lang selector highlight

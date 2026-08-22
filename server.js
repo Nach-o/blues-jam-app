@@ -244,6 +244,34 @@ app.delete("/api/queue", requirePin, (req, res) => {
 });
 
 // --- Auto-grouping logic ---
+// Instrument normalization map (all translations → English key)
+const INSTRUMENT_NORMALIZE = {
+  // English
+  "guitar": "Guitar", "bass": "Bass", "drums": "Drums",
+  "vocals": "Vocals", "keyboards": "Keyboards", "harmonica": "Harmonica", "other": "Other",
+  // Spanish
+  "guitarra": "Guitar", "bajo": "Bass", "batería": "Drums", "bateria": "Drums",
+  "voz": "Vocals", "teclados": "Keyboards", "armónica": "Harmonica", "armonica": "Harmonica", "otro": "Other",
+  // Russian
+  "гитара": "Guitar", "бас": "Bass", "ударные": "Drums",
+  "вокал": "Vocals", "клавишные": "Keyboards", "губная гармошка": "Harmonica", "другое": "Other",
+  // Polish
+  "gitara": "Guitar", "bas": "Bass", "perkusja": "Drums",
+  "wokal": "Vocals", "klawisze": "Keyboards", "harmonijka": "Harmonica", "inne": "Other",
+  // Chinese
+  "吉他": "Guitar", "贝斯": "Bass", "鼓": "Drums",
+  "人声": "Vocals", "键盘": "Keyboards", "口琴": "Harmonica", "其他": "Other",
+  // Japanese
+  "ギター": "Guitar", "ベース": "Bass", "ドラム": "Drums",
+  "ボーカル": "Vocals", "キーボード": "Keyboards", "ハーモニカ": "Harmonica", "その他": "Other"
+};
+
+function normalizeInstrument(instr) {
+  if (!instr) return instr;
+  const key = instr.toLowerCase().trim();
+  return INSTRUMENT_NORMALIZE[key] || instr;
+}
+
 // Required instruments to form a band (at least these three)
 const REQUIRED_INSTRUMENTS = ["Guitar", "Bass", "Drums"];
 
@@ -260,7 +288,7 @@ function tryAutoGroup() {
   // Check if we have at least one of each required instrument
   const instrumentMap = {};
   for (const s of solos) {
-    const instr = s.instrument;
+    const instr = normalizeInstrument(s.instrument);
     if (!instrumentMap[instr]) instrumentMap[instr] = [];
     instrumentMap[instr].push(s);
   }
@@ -346,4 +374,13 @@ function recompactPositions() {
 app.listen(PORT, () => {
   console.log(`Blues Jam App running at http://localhost:${PORT}`);
   console.log(`Admin PIN: ${ADMIN_PIN}`);
+
+  // Self-ping to prevent Render free tier from sleeping (pings every 10 minutes)
+  if (process.env.RENDER_EXTERNAL_URL) {
+    const url = process.env.RENDER_EXTERNAL_URL;
+    setInterval(() => {
+      fetch(url).catch(() => {});
+      console.log(`[keep-alive] pinged ${url}`);
+    }, 10 * 60 * 1000); // every 10 minutes
+  }
 });
