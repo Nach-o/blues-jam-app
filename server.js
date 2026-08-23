@@ -336,7 +336,7 @@ function tryAutoGroup() {
   for (const key of songKeys) {
     const songMembers = songGroups[key];
 
-    // Start with song members that fit instrument limits
+    // For song-based groups: Guitar + Bass + Drums MUST come from same-song members
     let grouped = [];
     for (const m of songMembers) {
       if (canAddToGroup(grouped, m)) {
@@ -344,47 +344,34 @@ function tryAutoGroup() {
       }
     }
 
-    // Fill gaps from no-song pool to meet minimum requirement
-    if (!meetsMinimum(grouped)) {
-      for (const candidate of noSong) {
-        if (canAddToGroup(grouped, candidate)) {
-          grouped.push(candidate);
-        }
-        if (meetsMinimum(grouped)) break;
+    // Check if the core rhythm section (Guitar+Bass+Drums) is covered by same-song members only
+    const coreMetBySong = REQUIRED_INSTRUMENTS.every((instr) =>
+      grouped.some((m) => normalizeInstrument(m.instrument) === instr)
+    );
+
+    if (!coreMetBySong) continue; // Skip this song — can't form a valid band
+
+    // Core is met! Now fill extras (non-core instruments) from no-song pool
+    const usedIds = new Set(grouped.map((m) => m.id));
+    for (const candidate of noSong) {
+      if (usedIds.has(candidate.id)) continue;
+      const candidateInstr = normalizeInstrument(candidate.instrument);
+      // Only add non-core instruments from no-song pool
+      if (!REQUIRED_INSTRUMENTS.includes(candidateInstr) && canAddToGroup(grouped, candidate)) {
+        grouped.push(candidate);
+        usedIds.add(candidate.id);
       }
     }
 
-    // If we still don't meet minimum, try adding more from withSong (different songs)
-    if (!meetsMinimum(grouped)) {
-      const usedIds = new Set(grouped.map((m) => m.id));
-      for (const candidate of withSong) {
-        if (usedIds.has(candidate.id)) continue;
-        if (canAddToGroup(grouped, candidate)) {
-          grouped.push(candidate);
-          usedIds.add(candidate.id);
-        }
-        if (meetsMinimum(grouped)) break;
-      }
-    }
+    // Also add any same-song extras that didn't fit initially (e.g. 2nd guitar)
+    // (already handled above in the first loop)
 
-    if (meetsMinimum(grouped)) {
-      // Add any remaining no-song solos that fit instrument limits
-      const usedIds = new Set(grouped.map((m) => m.id));
-      for (const candidate of noSong) {
-        if (usedIds.has(candidate.id)) continue;
-        if (canAddToGroup(grouped, candidate)) {
-          grouped.push(candidate);
-          usedIds.add(candidate.id);
-        }
-      }
-      return commitGroup(grouped, songMembers[0].song);
-    }
+    return commitGroup(grouped, songMembers[0].song);
   }
 
-  // Strategy 2: No song match worked — try forming from all solos (no-song first, then with-song)
-  const allSolos = [...noSong, ...withSong];
+  // Strategy 2: No song match worked — try forming from no-song solos only
   let grouped = [];
-  for (const candidate of allSolos) {
+  for (const candidate of noSong) {
     if (canAddToGroup(grouped, candidate)) {
       grouped.push(candidate);
     }
