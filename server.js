@@ -84,12 +84,14 @@ app.post("/api/register/individual", (req, res) => {
   ).run(name, instrument, song || null, position);
 
   // --- Auto-grouping logic ---
-  // Check if unassigned solo individuals can form a band
-  // Minimum requirement: at least Guitar + Bass + Drums
-  const autoGroupResult = tryAutoGroup();
+  // First, try to add this solo to an existing group that hasn't played yet
+  const joinedExisting = tryJoinExistingGroup();
+
+  // If not joined an existing group, try forming a new group from solos
+  const autoGroupResult = joinedExisting ? null : tryAutoGroup();
 
   broadcastUpdate();
-  res.json({ success: true, position, autoGrouped: autoGroupResult });
+  res.json({ success: true, position, autoGrouped: autoGroupResult, joinedExisting });
 });
 
 // Register group
@@ -283,6 +285,69 @@ const MAX_PER_INSTRUMENT = {
 
 function getMaxForInstrument(instr) {
   return MAX_PER_INSTRUMENT[instr] || 1;
+}
+
+/**
+ * Try to add ungrouped solo musicians to existing groups that haven't played yet,
+ * respecting instrument limits.
+ */
+function tryJoinExistingGroup() {
+  // Get ungrouped solos (no group_name, individual)
+  const solos = db
+    .prepare(
+      "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
+    )
+    .all();
+
+  if (solos.length === 0) return null;
+
+  // Get existing groups that are still waiting (not played, not missing)
+  const waitingGroups = db
+    .prepare(
+      "SELECT DISTINCT group_name, position FROM participants WHERE entry_type = 'group' AND group_name IS NOT NULL AND status = 'waiting' ORDER BY position ASC"
+    )
+    .all();
+
+  if (waitingGroups.length === 0) return null;
+
+  let anyJoined = false;
+
+  for (const group of waitingGroups) {
+    // Get current members of this group
+    const members = db
+      .prepare("SELECT * FROM participants WHERE group_name = ? AND position = ?")
+      .all(group.group_name, group.position);
+
+    // Try to add each solo to this group
+    for (const solo of solos) {
+      if (solo.group_name) continue; // already joined somewhere in this loop
+
+      const soloInstr = normalizeInstrument(solo.instrument);
+      const currentCount = members.filter(
+        (m) => normalizeInstrument(m.instrument) === soloInstr
+      ).length;
+      const max = getMaxForInstrument(soloInstr);
+
+      if (currentCount < max) {
+        // Can join! Update the solo to become part of this group
+        db.prepare(
+          "UPDATE participants SET group_name = ?, entry_type = 'group', position = ? WHERE id = ?"
+        ).run(group.group_name, group.position, solo.id);
+
+        // Mark in-memory so we don't try to add them again
+        solo.group_name = group.group_name;
+        members.push(solo);
+        anyJoined = true;
+      }
+    }
+  }
+
+  if (anyJoined) {
+    recompactPositions();
+    return true;
+  }
+
+  return null;
 }
 
 /**
