@@ -443,10 +443,20 @@ function tryAutoGroup() {
   }
 
   if (meetsMinimum(grouped)) {
-    return commitGroup(grouped, null);
+    return commitGroup(grouped, getRandomBluesSuggestion());
   }
 
   return null;
+}
+
+// Random blues style suggestions for no-song groups
+const BLUES_STYLES = ["Slow", "Shuffle", "Texas", "Funky", "Chicago", "Delta", "Jump", "Boogie", "Minor", "Swamp", "West Coast", "Piedmont"];
+const BLUES_KEYS = ["A", "B", "Bb", "C", "D", "E", "F", "G", "Am", "Bm", "Dm", "Em", "Gm"];
+
+function getRandomBluesSuggestion() {
+  const style = BLUES_STYLES[Math.floor(Math.random() * BLUES_STYLES.length)];
+  const key = BLUES_KEYS[Math.floor(Math.random() * BLUES_KEYS.length)];
+  return `${style} Blues in ${key}`;
 }
 
 function commitGroup(grouped, song) {
