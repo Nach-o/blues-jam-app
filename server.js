@@ -275,8 +275,39 @@ function normalizeInstrument(instr) {
 // Required instruments to form a band (at least these three)
 const REQUIRED_INSTRUMENTS = ["Guitar", "Bass", "Drums"];
 
+// Max allowed per instrument in a single group
+const MAX_PER_INSTRUMENT = {
+  "Guitar": 2,
+  // All others default to 1
+};
+
+function getMaxForInstrument(instr) {
+  return MAX_PER_INSTRUMENT[instr] || 1;
+}
+
+/**
+ * Check if a candidate can be added to an existing group selection
+ * without violating instrument limits.
+ */
+function canAddToGroup(grouped, candidate) {
+  const candidateInstr = normalizeInstrument(candidate.instrument);
+  const currentCount = grouped.filter(
+    (m) => normalizeInstrument(m.instrument) === candidateInstr
+  ).length;
+  return currentCount < getMaxForInstrument(candidateInstr);
+}
+
+/**
+ * Check if a group selection meets the minimum requirement (Guitar + Bass + Drums)
+ */
+function meetsMinimum(grouped) {
+  return REQUIRED_INSTRUMENTS.every((instr) =>
+    grouped.some((m) => normalizeInstrument(m.instrument) === instr)
+  );
+}
+
 function tryAutoGroup() {
-  // Get all ungrouped solo individuals (entry_type = 'individual', no group_name)
+  // Get all ungrouped solo individuals
   const solos = db
     .prepare(
       "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
@@ -285,40 +316,88 @@ function tryAutoGroup() {
 
   if (solos.length < REQUIRED_INSTRUMENTS.length) return null;
 
-  // Check if we have at least one of each required instrument
-  const instrumentMap = {};
-  for (const s of solos) {
-    const instr = normalizeInstrument(s.instrument);
-    if (!instrumentMap[instr]) instrumentMap[instr] = [];
-    instrumentMap[instr].push(s);
+  // Split solos into those with a song and those without
+  const withSong = solos.filter((s) => s.song && s.song.trim() !== "");
+  const noSong = solos.filter((s) => !s.song || s.song.trim() === "");
+
+  // Strategy 1: Try to form a group from people who share the same song
+  const songGroups = {};
+  for (const s of withSong) {
+    const key = s.song.trim().toLowerCase();
+    if (!songGroups[key]) songGroups[key] = [];
+    songGroups[key].push(s);
   }
 
-  const hasAllRequired = REQUIRED_INSTRUMENTS.every(
-    (instr) => instrumentMap[instr] && instrumentMap[instr].length > 0
+  // Try each song group (largest first for best chance)
+  const songKeys = Object.keys(songGroups).sort(
+    (a, b) => songGroups[b].length - songGroups[a].length
   );
 
-  if (!hasAllRequired) return null;
+  for (const key of songKeys) {
+    const songMembers = songGroups[key];
 
-  // Pick one person per required instrument (first available), plus any extras (vocals, keys, etc.)
-  const grouped = [];
-  const usedIds = new Set();
+    // Start with song members that fit instrument limits
+    let grouped = [];
+    for (const m of songMembers) {
+      if (canAddToGroup(grouped, m)) {
+        grouped.push(m);
+      }
+    }
 
-  // First, pick one of each required instrument
-  for (const instr of REQUIRED_INSTRUMENTS) {
-    const pick = instrumentMap[instr][0];
-    grouped.push(pick);
-    usedIds.add(pick.id);
-  }
+    // Fill gaps from no-song pool to meet minimum requirement
+    if (!meetsMinimum(grouped)) {
+      for (const candidate of noSong) {
+        if (canAddToGroup(grouped, candidate)) {
+          grouped.push(candidate);
+        }
+        if (meetsMinimum(grouped)) break;
+      }
+    }
 
-  // Then add any other solos that haven't been picked yet (vocals, harmonica, keyboards, etc.)
-  for (const s of solos) {
-    if (!usedIds.has(s.id)) {
-      grouped.push(s);
-      usedIds.add(s.id);
+    // If we still don't meet minimum, try adding more from withSong (different songs)
+    if (!meetsMinimum(grouped)) {
+      const usedIds = new Set(grouped.map((m) => m.id));
+      for (const candidate of withSong) {
+        if (usedIds.has(candidate.id)) continue;
+        if (canAddToGroup(grouped, candidate)) {
+          grouped.push(candidate);
+          usedIds.add(candidate.id);
+        }
+        if (meetsMinimum(grouped)) break;
+      }
+    }
+
+    if (meetsMinimum(grouped)) {
+      // Add any remaining no-song solos that fit instrument limits
+      const usedIds = new Set(grouped.map((m) => m.id));
+      for (const candidate of noSong) {
+        if (usedIds.has(candidate.id)) continue;
+        if (canAddToGroup(grouped, candidate)) {
+          grouped.push(candidate);
+          usedIds.add(candidate.id);
+        }
+      }
+      return commitGroup(grouped, songMembers[0].song);
     }
   }
 
-  // Assign them all to the same position (the lowest among them) and mark as group
+  // Strategy 2: No song match worked — try forming from all solos (no-song first, then with-song)
+  const allSolos = [...noSong, ...withSong];
+  let grouped = [];
+  for (const candidate of allSolos) {
+    if (canAddToGroup(grouped, candidate)) {
+      grouped.push(candidate);
+    }
+  }
+
+  if (meetsMinimum(grouped)) {
+    return commitGroup(grouped, null);
+  }
+
+  return null;
+}
+
+function commitGroup(grouped, song) {
   const groupPosition = Math.min(...grouped.map((g) => g.position));
   const groupNumber = db
     .prepare(
@@ -328,21 +407,20 @@ function tryAutoGroup() {
   const groupName = `Jam Band #${(groupNumber.cnt || 0) + 1}`;
 
   const updateStmt = db.prepare(
-    "UPDATE participants SET group_name = ?, entry_type = 'group', position = ? WHERE id = ?"
+    "UPDATE participants SET group_name = ?, entry_type = 'group', position = ?, song = COALESCE(?, song) WHERE id = ?"
   );
 
   const doGroup = db.transaction(() => {
     for (const member of grouped) {
-      updateStmt.run(groupName, groupPosition, member.id);
+      updateStmt.run(groupName, groupPosition, song, member.id);
     }
   });
   doGroup();
 
-  // Recompact positions after grouping
   recompactPositions();
 
   console.log(
-    `Auto-grouped ${grouped.length} solos into "${groupName}" at position ${groupPosition}`
+    `Auto-grouped ${grouped.length} solos into "${groupName}" at position ${groupPosition}${song ? ` (song: ${song})` : ""}`
   );
 
   return { groupName, members: grouped.length, position: groupPosition };
