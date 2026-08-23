@@ -9,52 +9,52 @@
 <body>
   <div id="lang-switcher"></div>
 
-  <h1 data-i18n="joinTitle">Join Stardust Blues Jam</h1>
+  <h1 data-i18n="joinTitle">Unirse al Stardust Blues Jam</h1>
   <p class="subtitle" id="jam-date"></p>
 
   <!-- Step 1: Choose entry type -->
   <div class="container" id="step-type">
-    <h2 data-i18n="howJoining">How are you joining?</h2>
+    <h2 data-i18n="howJoining">¿Cómo te unes?</h2>
     <div class="center mt-1">
-      <button onclick="chooseType('individual')" data-i18n="asIndividual">As Individual</button>
-      <button onclick="chooseType('group')" data-i18n="asGroup">As a Group</button>
+      <button onclick="chooseType('individual')" data-i18n="asIndividual">Individual</button>
+      <button onclick="chooseType('group')" data-i18n="asGroup">Como grupo</button>
     </div>
   </div>
 
   <!-- Step 2a: Individual form -->
   <div class="container hidden" id="step-individual">
-    <h2 data-i18n="individualTitle">Individual Sign-Up</h2>
-    <input type="text" id="ind-name" data-i18n="yourName" placeholder="Your name">
-    <p class="mt-1" data-i18n="chooseInstrument">Choose your instrument:</p>
+    <h2 data-i18n="individualTitle">Registro individual</h2>
+    <input type="text" id="ind-name" data-i18n="yourName" placeholder="Tu nombre">
+    <p class="mt-1" data-i18n="chooseInstrument">Elige tu instrumento:</p>
     <div class="instrument-grid" id="ind-instruments"></div>
-    <input type="text" id="ind-song" data-i18n="songOptional" placeholder="Song to play (optional)">
+    <input type="text" id="ind-song" data-i18n="songOptional" placeholder="Canción a tocar (opcional)">
     <div class="center">
-      <button onclick="submitIndividual()" data-i18n="submit">Submit</button>
-      <button class="secondary" onclick="goBack()" data-i18n="back">Back</button>
+      <button onclick="submitIndividual()" data-i18n="submit">Enviar</button>
+      <button class="secondary" onclick="goBack()" data-i18n="back">Atrás</button>
     </div>
   </div>
 
   <!-- Step 2b: Group form -->
   <div class="container hidden" id="step-group">
-    <h2 data-i18n="groupTitle">Group Sign-Up</h2>
-    <input type="text" id="group-name" data-i18n="groupName" placeholder="Group / Band name">
-    <p class="mt-1" data-i18n="members">Members:</p>
+    <h2 data-i18n="groupTitle">Registro de grupo</h2>
+    <input type="text" id="group-name" data-i18n="groupName" placeholder="Nombre del grupo / banda">
+    <p class="mt-1" data-i18n="members">Miembros:</p>
     <div id="members-list"></div>
-    <button class="secondary small" onclick="addMember()" data-i18n="addMember">+ Add Member</button>
-    <input type="text" id="group-song" data-i18n="songOptional" placeholder="Song to play (optional)" class="mt-1">
+    <button class="secondary small" onclick="addMember()" data-i18n="addMember">+ Añadir miembro</button>
+    <input type="text" id="group-song" data-i18n="songOptional" placeholder="Canción a tocar (opcional)" class="mt-1">
     <div class="center mt-1">
-      <button onclick="submitGroup()" data-i18n="submitGroup">Submit Group</button>
-      <button class="secondary" onclick="goBack()" data-i18n="back">Back</button>
+      <button onclick="submitGroup()" data-i18n="submitGroup">Enviar grupo</button>
+      <button class="secondary" onclick="goBack()" data-i18n="back">Atrás</button>
     </div>
   </div>
 
   <!-- Confirmation -->
   <div class="container hidden" id="step-done">
-    <h2 data-i18n="youreIn">You're in!</h2>
+    <h2 data-i18n="youreIn">¡Estás dentro!</h2>
     <p class="center mt-1" id="confirm-msg"></p>
     <div class="center mt-1">
-      <button onclick="window.location.href='queue.html'" data-i18n="viewQueue">View Queue</button>
-      <button class="secondary" onclick="window.location.href='index.html'" data-i18n="home">Home</button>
+      <button onclick="window.location.href='queue.html'" data-i18n="viewQueue">Ver cola</button>
+      <button class="secondary" onclick="window.location.href='index.html'" data-i18n="home">Inicio</button>
     </div>
   </div>
 
