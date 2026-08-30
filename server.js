@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Admin PIN — change this to whatever you want
-const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
+const ADMIN_PIN = process.env.ADMIN_PIN || "Admin123";
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
