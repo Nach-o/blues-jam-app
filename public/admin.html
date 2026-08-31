@@ -43,6 +43,14 @@
       <div class="center mt-1">
         <button class="danger" onclick="resetQueue()">Reset Entire Queue</button>
       </div>
+
+      <div class="center mt-1" style="padding:1rem; border:1px solid #2a2015; border-radius:10px;">
+        <p style="color:#d4a647; font-weight:600; margin-bottom:0.5rem;">Solo Time Gate (Thursdays 20:30)</p>
+        <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem;">
+          <input type="checkbox" id="solo-gate-toggle" onchange="toggleSoloGate()" style="width:auto; accent-color:#d4a647; transform:scale(1.4);">
+          <span id="solo-gate-label" style="color:#aaa;">Loading...</span>
+        </label>
+      </div>
     </div>
 
     <div class="center mt-1">
@@ -74,6 +82,7 @@
         document.getElementById("pin-overlay").classList.add("hidden");
         document.getElementById("admin-content").classList.remove("hidden");
         loadQueue();
+        loadSoloGate();
         connectSSE();
       } else {
         document.getElementById("pin-error").style.display = "block";
@@ -193,6 +202,30 @@
         method: "DELETE",
         headers: { "X-Admin-Pin": adminPin }
       });
+    }
+
+    // Solo time gate toggle
+    async function loadSoloGate() {
+      const res = await fetch("/api/settings/solo-gate");
+      const data = await res.json();
+      const toggle = document.getElementById("solo-gate-toggle");
+      const label = document.getElementById("solo-gate-label");
+      toggle.checked = data.enabled;
+      label.textContent = data.enabled ? "ON — Solo only on Thursdays 20:30" : "OFF — Solo open anytime";
+      label.style.color = data.enabled ? "#d4a647" : "#7cdf7c";
+    }
+
+    async function toggleSoloGate() {
+      const toggle = document.getElementById("solo-gate-toggle");
+      const res = await fetch("/api/settings/solo-gate", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Pin": adminPin },
+        body: JSON.stringify({ enabled: toggle.checked })
+      });
+      const data = await res.json();
+      const label = document.getElementById("solo-gate-label");
+      label.textContent = data.enabled ? "ON — Solo only on Thursdays 20:30" : "OFF — Solo open anytime";
+      label.style.color = data.enabled ? "#d4a647" : "#7cdf7c";
     }
   </script>
 </body>

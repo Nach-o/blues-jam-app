@@ -171,8 +171,13 @@
       return localStorage.getItem("blues-jam-admin") === "true";
     }
 
+    // Fetch the server-side time gate setting
+    let soloGateEnabled = true;
+    fetch("/api/settings/solo-gate").then(r => r.json()).then(d => { soloGateEnabled = d.enabled; });
+
     function isSoloOpen() {
       if (isAdmin()) return true;
+      if (!soloGateEnabled) return true; // Gate disabled by admin — open for everyone
       // Solo registration opens Thursdays at 20:30 Spain time (Europe/Madrid)
       const now = new Date();
       const spain = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Madrid" }));

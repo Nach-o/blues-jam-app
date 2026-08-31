@@ -8,6 +8,9 @@ const PORT = process.env.PORT || 3000;
 // Admin PIN — change this to whatever you want
 const ADMIN_PIN = process.env.ADMIN_PIN || "Admin123";
 
+// Solo time gate: when true, solo registration only on Thursdays 20:30 Spain time
+let soloTimeGateEnabled = true;
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -55,6 +58,19 @@ app.post("/api/admin/verify", (req, res) => {
     console.log(`PIN rejected: got "${submitted}", expected "${expected}"`);
     res.status(401).json({ error: "Invalid PIN" });
   }
+});
+
+// Get solo time gate status (public — so register page can check)
+app.get("/api/settings/solo-gate", (req, res) => {
+  res.json({ enabled: soloTimeGateEnabled });
+});
+
+// Toggle solo time gate (admin only)
+app.patch("/api/settings/solo-gate", requirePin, (req, res) => {
+  const { enabled } = req.body;
+  soloTimeGateEnabled = !!enabled;
+  console.log(`Solo time gate ${soloTimeGateEnabled ? "enabled" : "disabled"} by admin`);
+  res.json({ success: true, enabled: soloTimeGateEnabled });
 });
 
 // --- Public endpoints ---
