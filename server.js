@@ -140,6 +140,9 @@ app.post("/api/register/individual", (req, res) => {
   // If not joined an existing group, try forming a new group from solos
   const autoGroupResult = joinedExisting ? null : tryAutoGroup();
 
+  // Move incomplete groups to the bottom
+  reorderIncompleteGroups();
+
   broadcastUpdate();
   res.json({ success: true, position, autoGrouped: autoGroupResult, joinedExisting });
 });
@@ -317,6 +320,57 @@ app.post("/api/register/repeat", (req, res) => {
 
   broadcastUpdate();
   res.json({ success: true, position });
+});
+
+// Join an existing position (for "join artist" button in queue)
+app.post("/api/register/join/:position", (req, res) => {
+  const targetPosition = parseInt(req.params.position);
+  const { name, instrument } = req.body;
+
+  if (!name || !instrument) {
+    return res.status(400).json({ error: "Name and instrument required" });
+  }
+
+  // Get members at this position
+  const members = db
+    .prepare("SELECT * FROM participants WHERE position = ? AND status = 'waiting'")
+    .all(targetPosition);
+
+  if (!members.length) {
+    return res.status(404).json({ error: "Position not found or already played" });
+  }
+
+  // Check instrument limits
+  const normalizedInstr = normalizeInstrument(instrument);
+  const currentCount = members.filter(
+    (m) => normalizeInstrument(m.instrument) === normalizedInstr
+  ).length;
+  const max = getMaxForInstrument(normalizedInstr);
+
+  if (currentCount >= max) {
+    return res.status(400).json({ error: "Instrument limit reached for this group" });
+  }
+
+  const first = members[0];
+  const groupName = first.group_name || first.name + "'s Jam";
+
+  // If this was a solo, convert it to a group first
+  if (!first.group_name) {
+    db.prepare(
+      "UPDATE participants SET group_name = ?, entry_type = 'group' WHERE id = ?"
+    ).run(groupName, first.id);
+  }
+
+  // Insert the new member into the same position and group
+  db.prepare(
+    "INSERT INTO participants (group_name, name, instrument, song, entry_type, position, status) VALUES (?, ?, ?, ?, 'group', ?, 'waiting')"
+  ).run(groupName, name, instrument, first.song, targetPosition);
+
+  // Check if group is now complete and reorder
+  reorderIncompleteGroups();
+
+  broadcastUpdate();
+  res.json({ success: true, position: targetPosition, groupName });
 });
 
 // --- Auto-grouping logic ---
@@ -583,6 +637,66 @@ function recompactPositions() {
     });
   });
   compact();
+}
+
+/**
+ * Reorder: move incomplete groups (waiting, missing Guitar/Bass/Drums) to the bottom.
+ * Complete groups and played/missing entries stay in their current order.
+ */
+function reorderIncompleteGroups() {
+  // Get all distinct positions with their status and members
+  const positions = db
+    .prepare("SELECT DISTINCT position FROM participants ORDER BY position ASC")
+    .all()
+    .map((r) => r.position);
+
+  const complete = [];
+  const incomplete = [];
+
+  for (const pos of positions) {
+    const members = db
+      .prepare("SELECT * FROM participants WHERE position = ?")
+      .all(pos);
+
+    const first = members[0];
+
+    // Already played or missing — don't move
+    if (first.status === "played" || first.status === "missing") {
+      complete.push(pos);
+      continue;
+    }
+
+    // Check if this position has Guitar + Bass + Drums
+    const instruments = members.map((m) => normalizeInstrument(m.instrument));
+    const hasRequired = REQUIRED_INSTRUMENTS.every((instr) =>
+      instruments.includes(instr)
+    );
+
+    if (hasRequired) {
+      complete.push(pos);
+    } else {
+      incomplete.push(pos);
+    }
+  }
+
+  // New order: complete positions first, then incomplete
+  const newOrder = [...complete, ...incomplete];
+
+  const update = db.prepare(
+    "UPDATE participants SET position = ? WHERE position = ?"
+  );
+
+  // Use negative temp positions to avoid collisions
+  const reorder = db.transaction(() => {
+    newOrder.forEach((oldPos, idx) => {
+      update.run(-(idx + 1), oldPos);
+    });
+    // Now flip negatives to positives
+    newOrder.forEach((_, idx) => {
+      update.run(idx + 1, -(idx + 1));
+    });
+  });
+  reorder();
 }
 
 app.listen(PORT, () => {

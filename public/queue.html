@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jam Queue</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .join-form { display: none; margin-top: 0.5rem; }
+    .join-form.active { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .join-form input { flex: 1; min-width: 100px; margin: 0; padding: 0.4rem; font-size: 0.85rem; }
+    .join-form select { flex: 1; min-width: 100px; margin: 0; padding: 0.4rem; font-size: 0.85rem; }
+    .btn-join { background: #2a5a2a !important; color: #7cdf7c !important; font-size: 0.75rem !important; padding: 0.25rem 0.5rem !important; }
+    .btn-join:hover { background: #3a7a3a !important; }
+  </style>
 </head>
 <body>
   <div id="lang-switcher"></div>
@@ -38,7 +46,43 @@
 
   <script src="i18n.js"></script>
   <script>
+    const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
+    const REQUIRED = ["Guitar", "Bass", "Drums"];
+    const MAX_GUITAR = 2;
     const tbody = document.getElementById("queue-body");
+
+    function instrumentOptions() {
+      return `<option value="">${t("instrumentPlaceholder")}</option>` +
+        INSTRUMENTS.map(key => `<option value="${t(key)}">${t(key)}</option>`).join("");
+    }
+
+    // Check which instruments are still available for a group
+    function availableInstruments(members) {
+      const counts = {};
+      members.forEach(m => {
+        const n = normalizeLocal(m.instrument);
+        counts[n] = (counts[n] || 0) + 1;
+      });
+      return INSTRUMENTS.filter(key => {
+        const eng = key.charAt(0).toUpperCase() + key.slice(1); // vocals->Vocals etc
+        const max = eng === "Guitar" ? MAX_GUITAR : 1;
+        return (counts[eng] || 0) < max;
+      });
+    }
+
+    // Simple client-side normalize (good enough for display logic)
+    function normalizeLocal(instr) {
+      const map = {};
+      INSTRUMENTS.forEach(key => { map[t(key).toLowerCase()] = key.charAt(0).toUpperCase() + key.slice(1); });
+      // Add English fallbacks
+      INSTRUMENTS.forEach(key => { map[key] = key.charAt(0).toUpperCase() + key.slice(1); });
+      return map[(instr || "").toLowerCase()] || instr;
+    }
+
+    function isComplete(members) {
+      const instruments = members.map(m => normalizeLocal(m.instrument));
+      return REQUIRED.every(r => instruments.includes(r));
+    }
 
     function renderQueue(queue) {
       if (!queue.length) {
@@ -77,14 +121,31 @@
         let instrCell = isGroup ? members.map(m => m.instrument).join(", ") : first.instrument;
         const joinedTime = first.created_at ? formatTime(first.created_at) : "\u2014";
         const isPlayed = first.status === "played";
+        const isWaiting = first.status === "waiting";
 
+        // Type cell with actions
         let typeCell = isGroup ? t("typeGroup") : t("typeSolo");
+
+        // Play Again for played entries
         if (isPlayed) {
-          // Build play-again buttons for each member
           const againBtns = members.map(m =>
-            `<button class="small secondary" onclick="playAgain('${m.name.replace(/'/g, "\\'")}','${m.instrument.replace(/'/g, "\\'")}')">↻ ${m.name}</button>`
+            `<button class="small secondary" onclick="playAgain('${esc(m.name)}','${esc(m.instrument)}')">↻ ${m.name}</button>`
           ).join(" ");
           typeCell += `<div class="play-again-row">${againBtns}</div>`;
+        }
+
+        // Join button for waiting entries with a song that aren't complete yet
+        const showJoin = isWaiting && first.song && !isComplete(members);
+        if (showJoin) {
+          const avail = availableInstruments(members);
+          const opts = avail.map(key => `<option value="${t(key)}">${t(key)}</option>`).join("");
+          typeCell += `
+            <button class="small btn-join" onclick="toggleJoinForm(${first.position})">+ Join</button>
+            <div class="join-form" id="join-form-${first.position}">
+              <input type="text" id="join-name-${first.position}" placeholder="${t("namePlaceholder")}">
+              <select id="join-instr-${first.position}">${opts}</select>
+              <button class="small btn-join" onclick="submitJoin(${first.position})">OK</button>
+            </div>`;
         }
 
         return `
@@ -99,26 +160,45 @@
       }).join("");
     }
 
+    function esc(str) { return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+
     function formatTime(utcStr) {
       const d = new Date(utcStr + "Z");
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
-    fetch("/api/queue").then(r => r.json()).then(renderQueue);
-    const evtSource = new EventSource("/api/events");
-    evtSource.onmessage = (event) => { renderQueue(JSON.parse(event.data)); };
+    function toggleJoinForm(pos) {
+      const form = document.getElementById(`join-form-${pos}`);
+      form.classList.toggle("active");
+    }
 
-    async function playAgain(name, instrument) {
-      const res = await fetch("/api/register/repeat", {
+    async function submitJoin(pos) {
+      const name = document.getElementById(`join-name-${pos}`).value.trim();
+      const instrument = document.getElementById(`join-instr-${pos}`).value;
+      if (!name || !instrument) { alert(t("alertNameInstrument")); return; }
+
+      const res = await fetch(`/api/register/join/${pos}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, instrument })
       });
       const data = await res.json();
-      if (data.success) {
-        // SSE will update the queue automatically
-      }
+      if (!res.ok) { alert(data.error); }
+      // SSE will update
     }
+
+    async function playAgain(name, instrument) {
+      await fetch("/api/register/repeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, instrument })
+      });
+    }
+
+    // Initial load
+    fetch("/api/queue").then(r => r.json()).then(renderQueue);
+    const evtSource = new EventSource("/api/events");
+    evtSource.onmessage = (event) => { renderQueue(JSON.parse(event.data)); };
   </script>
 </body>
 </html>
