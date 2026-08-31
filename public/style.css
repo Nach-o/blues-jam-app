@@ -426,3 +426,20 @@ tr.row-next td { color: #7cdf7c; font-weight: 600; }
   text-align: center;
   padding: 0.8rem;
 }
+
+
+/* Admin banner */
+.admin-banner {
+  text-align: center;
+  background: #2a3a1a;
+  color: #7cdf7c;
+  border: 1px solid #3a5a2a;
+  border-radius: 8px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  max-width: 600px;
+  width: 100%;
+  margin: 0.5rem auto;
+  position: relative;
+  z-index: 1;
+}

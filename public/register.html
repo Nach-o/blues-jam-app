@@ -10,6 +10,7 @@
   <div id="lang-switcher"></div>
 
   <h1 data-i18n="joinTitle">Unirse al Stardust Blues Jam</h1>
+  <div class="admin-banner hidden" id="admin-banner"></div>
   <p class="subtitle" id="jam-date"></p>
 
   <div class="center mb-1">
@@ -95,6 +96,15 @@
 
     // Display date
     document.getElementById("jam-date").textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Show admin banner if logged in
+    if (localStorage.getItem("blues-jam-admin") === "true") {
+      const banner = document.getElementById("admin-banner");
+      banner.classList.remove("hidden");
+      banner.textContent = getLang() === "es"
+        ? "🔑 Modo admin — registro solo abierto en cualquier momento"
+        : "🔑 Admin mode — solo registration open anytime";
+    }
 
     // Build instrument radio grid
     function buildInstrumentGrid() {
