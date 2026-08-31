@@ -22,12 +22,6 @@
     </div>
   </div>
 
-  <!-- Instrument demand panel -->
-  <div class="demand-panel" id="demand-panel" style="display:none;">
-    <h3 data-i18n="demandTitle">Instrumentos necesarios</h3>
-    <div class="demand-instruments" id="demand-instruments"></div>
-  </div>
-
   <div class="center mt-1">
     <button class="secondary" onclick="window.location.href='queue.html'" data-i18n="viewQueue">Ver cola</button>
     <button class="secondary" onclick="window.location.href='now-playing.html'">♪ Now Playing</button>
@@ -77,41 +71,6 @@
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     const todayQuote = bluesQuotes[dayOfYear % bluesQuotes.length];
     document.getElementById("daily-quote").innerHTML = `"${todayQuote.text}"<span class="author">&mdash; ${todayQuote.author}</span>`;
-
-    // Instrument demand - fetch and render
-    const INSTRUMENT_EMOJI = { Guitar: "🎸", Bass: "🎸", Drums: "🥁", Vocals: "🎤", Keyboards: "🎹", Harmonica: "🎵", Other: "🎵" };
-
-    function renderDemand(data) {
-      const panel = document.getElementById("demand-panel");
-      const container = document.getElementById("demand-instruments");
-      if (data.waitingSolos === 0) {
-        panel.style.display = "none";
-        return;
-      }
-      panel.style.display = "block";
-
-      const allInstruments = ["Guitar", "Bass", "Drums", "Vocals", "Keyboards", "Harmonica"];
-      let html = "";
-
-      if (data.readyToMerge) {
-        html = `<span class="demand-ready">${t("demandReady")}</span>`;
-      } else {
-        html = allInstruments.map(instr => {
-          const count = data.instrumentCounts[instr] || 0;
-          const isNeeded = data.needed.includes(instr);
-          const emoji = INSTRUMENT_EMOJI[instr] || "🎵";
-          return `<span class="demand-chip ${isNeeded ? 'needed' : 'have'}">${emoji} ${instr} ${isNeeded ? '✗' : '✓'}</span>`;
-        }).join("");
-      }
-      container.innerHTML = html;
-    }
-
-    // Fetch demand on load and via SSE
-    fetch("/api/demand").then(r => r.json()).then(renderDemand);
-    const evtSource = new EventSource("/api/events");
-    evtSource.onmessage = () => {
-      fetch("/api/demand").then(r => r.json()).then(renderDemand);
-    };
   </script>
 </body>
 </html>
