@@ -67,7 +67,7 @@ app.get("/api/queue", (req, res) => {
   res.json(queue);
 });
 
-// Get instrument demand — what's needed to form the next band
+// Get instrument demand — what's needed based on who has joined tonight
 app.get("/api/demand", (req, res) => {
   const solos = db
     .prepare(
@@ -81,8 +81,10 @@ app.get("/api/demand", (req, res) => {
     instrumentCounts[instr] = (instrumentCounts[instr] || 0) + 1;
   }
 
+  // Mark ALL instruments that no solo has signed up with as needed
+  const ALL_INSTRUMENTS = ["Guitar", "Bass", "Drums", "Vocals", "Keyboards", "Harmonica"];
   const needed = [];
-  for (const instr of REQUIRED_INSTRUMENTS) {
+  for (const instr of ALL_INSTRUMENTS) {
     if (!instrumentCounts[instr] || instrumentCounts[instr] < 1) {
       needed.push(instr);
     }
