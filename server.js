@@ -152,8 +152,14 @@ app.post("/api/register/individual", (req, res) => {
   ).run(name, instrument, song || null, position);
 
   // --- Auto-grouping logic ---
-  // Try forming a new group from solos
-  const autoGroupResult = tryAutoGroup();
+  // If solo chose a song, try to join a waiting group that has the same song and needs this instrument
+  let joinedBySong = false;
+  if (song && song.trim() !== "") {
+    joinedBySong = trySongMatchJoin(position, song.trim(), instrument);
+  }
+
+  // If not joined by song match, try forming a new group from solos
+  const autoGroupResult = joinedBySong ? null : tryAutoGroup();
 
   // Move incomplete groups to the bottom
   reorderIncompleteGroups();
@@ -438,6 +444,73 @@ const MAX_PER_INSTRUMENT = {
 
 function getMaxForInstrument(instr) {
   return MAX_PER_INSTRUMENT[instr] || 1;
+}
+
+/**
+ * When a solo with a song registers, check if there's a waiting group
+ * with the same song that needs this instrument. If so, add the solo to that group.
+ */
+function trySongMatchJoin(soloPosition, song, instrument) {
+  const normalizedInstr = normalizeInstrument(instrument);
+  const max = getMaxForInstrument(normalizedInstr);
+
+  // Normalize song for comparison (handle JSON arrays and plain strings)
+  const soloSongLower = song.toLowerCase();
+
+  // Find all waiting groups/entries with a song
+  const positions = db
+    .prepare(
+      "SELECT DISTINCT position FROM participants WHERE status = 'waiting' AND song IS NOT NULL AND song != '' AND position != ?"
+    )
+    .all(soloPosition);
+
+  for (const { position } of positions) {
+    const members = db
+      .prepare("SELECT * FROM participants WHERE position = ?")
+      .all(position);
+
+    const first = members[0];
+    if (!first.song) continue;
+
+    // Check if songs match (handle JSON arrays for groups)
+    let groupSongs = [];
+    try {
+      const parsed = JSON.parse(first.song);
+      if (Array.isArray(parsed)) groupSongs = parsed.map(s => s.toLowerCase());
+    } catch (e) {
+      groupSongs = [first.song.toLowerCase()];
+    }
+
+    if (!groupSongs.includes(soloSongLower)) continue;
+
+    // Songs match — check if this instrument is needed
+    const currentCount = members.filter(
+      (m) => normalizeInstrument(m.instrument) === normalizedInstr
+    ).length;
+
+    if (currentCount >= max) continue;
+
+    // Match! Move the solo into this group
+    const groupName = first.group_name || first.name + "'s Jam";
+
+    // If the target was a solo, convert it to a group first
+    if (!first.group_name) {
+      db.prepare(
+        "UPDATE participants SET group_name = ?, entry_type = 'group' WHERE id = ?"
+      ).run(groupName, first.id);
+    }
+
+    // Update the new solo to join this group
+    db.prepare(
+      "UPDATE participants SET group_name = ?, entry_type = 'group', position = ?, song = ? WHERE position = ? AND entry_type = 'individual' AND group_name IS NULL"
+    ).run(groupName, position, first.song, soloPosition);
+
+    recompactPositions();
+    console.log(`Song-matched solo (${instrument}) into "${groupName}" at position ${position} for song "${song}"`);
+    return true;
+  }
+
+  return false;
 }
 
 /**
