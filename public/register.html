@@ -64,6 +64,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="songs.js"></script>
   <script>
     const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
 
@@ -94,10 +95,12 @@
       document.getElementById("members-list").appendChild(row);
     }
 
-    // Initial member row + instrument grid
+    // Initial member row + instrument grid + song selectors
     document.addEventListener("DOMContentLoaded", () => {
       buildInstrumentGrid();
       addMember();
+      buildSongSelector("ind-song", "ind-song-list");
+      buildSongSelector("group-song", "group-song-list");
     });
 
     // Re-build on language change
