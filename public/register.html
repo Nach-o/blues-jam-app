@@ -32,7 +32,7 @@
     <input type="text" id="ind-name" data-i18n="yourName" placeholder="Tu nombre">
     <p class="mt-1" data-i18n="chooseInstrument">Elige tu instrumento:</p>
     <div class="instrument-grid" id="ind-instruments"></div>
-    <input type="text" id="ind-song" data-i18n="songOptional" placeholder="Canción a tocar (opcional)">
+    <input type="text" id="ind-song" placeholder="Canción a tocar (opcional)">
     <div class="center">
       <button onclick="submitIndividual()" data-i18n="submit">Enviar</button>
       <button class="secondary" onclick="goBack()" data-i18n="back">Atrás</button>
@@ -46,7 +46,7 @@
     <p class="mt-1" data-i18n="members">Miembros:</p>
     <div id="members-list"></div>
     <button class="secondary small" onclick="addMember()" data-i18n="addMember">+ Añadir miembro</button>
-    <input type="text" id="group-song" data-i18n="songOptional" placeholder="Canción a tocar (opcional)" class="mt-1">
+    <input type="text" id="group-song" placeholder="Canción a tocar (opcional)" class="mt-1">
     <div class="center mt-1">
       <button onclick="submitGroup()" data-i18n="submitGroup">Enviar grupo</button>
       <button class="secondary" onclick="goBack()" data-i18n="back">Atrás</button>
@@ -95,12 +95,11 @@
       document.getElementById("members-list").appendChild(row);
     }
 
-    // Initial member row + instrument grid + song selectors
     document.addEventListener("DOMContentLoaded", () => {
       buildInstrumentGrid();
       addMember();
-      buildSongSelector("ind-song", "ind-song-list");
-      buildSongSelector("group-song", "group-song-list");
+      buildSongSelector("ind-song");
+      buildSongSelector("group-song");
     });
 
     // Re-build on language change
@@ -133,7 +132,7 @@
     async function submitIndividual() {
       const name = document.getElementById("ind-name").value.trim();
       const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
-      const song = document.getElementById("ind-song").value.trim();
+      const song = getSongValue("ind-song");
 
       if (!name && !instrument) { alert(t("alertNameInstrument")); return; }
       if (!name) { alert(t("alertName")); return; }
@@ -152,7 +151,7 @@
 
     async function submitGroup() {
       const groupName = document.getElementById("group-name").value.trim();
-      const song = document.getElementById("group-song").value.trim();
+      const song = getSongValue("group-song");
       const rows = document.querySelectorAll(".member-row");
       const members = [];
       let missingInstrument = false;
