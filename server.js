@@ -149,12 +149,23 @@ app.post("/api/register/individual", (req, res) => {
 
 // Register group
 app.post("/api/register/group", (req, res) => {
-  const { groupName, members, song } = req.body;
+  const { groupName, members, song, songs } = req.body;
   if (!groupName || !members || !members.length) {
     return res
       .status(400)
       .json({ error: "Group name and at least one member required" });
   }
+
+  // songs = array of up to 4 songs; song = single song (backward compat)
+  let songList = songs || [];
+  if (!songList.length && song) songList = [song];
+  songList = songList.filter((s) => s && s.trim() !== "").slice(0, 4);
+
+  if (songList.length > 0 && songList.length < 2) {
+    return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
+  }
+
+  const songValue = songList.length ? JSON.stringify(songList) : null;
 
   const maxPos = db
     .prepare("SELECT COALESCE(MAX(position), 0) as max FROM participants")
@@ -167,7 +178,7 @@ app.post("/api/register/group", (req, res) => {
 
   const insertMany = db.transaction((members) => {
     for (const m of members) {
-      stmt.run(groupName, m.name, m.instrument, song || null, position);
+      stmt.run(groupName, m.name, m.instrument, songValue, position);
     }
   });
   insertMany(members);

@@ -12,6 +12,13 @@
     .join-form select { flex: 1; min-width: 100px; margin: 0; padding: 0.4rem; font-size: 0.85rem; }
     .btn-join { background: #2a5a2a !important; color: #7cdf7c !important; font-size: 0.75rem !important; padding: 0.25rem 0.5rem !important; }
     .btn-join:hover { background: #3a7a3a !important; }
+    .btn-songs { background: #4a3a10 !important; color: #d4a647 !important; font-size: 0.75rem !important; padding: 0.25rem 0.5rem !important; }
+    .btn-songs:hover { background: #5a4a20 !important; }
+    .songs-popup { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .songs-popup-box { background: linear-gradient(145deg, #1a1510, #12100d); border: 1px solid #2a2015; border-radius: 12px; padding: 1.5rem; max-width: 400px; width: 90%; }
+    .songs-popup-box h3 { color: #d4a647; font-family: 'Playfair Display', serif; margin-bottom: 0.8rem; }
+    .songs-popup-box ol { padding-left: 1.2rem; line-height: 2; color: #e8dcc8; }
+    .songs-popup-box ol li { margin-bottom: 0.3rem; }
   </style>
 </head>
 <body>
@@ -85,6 +92,7 @@
     }
 
     function renderQueue(queue) {
+      queueData = queue;
       if (!queue.length) {
         tbody.innerHTML = `<tr><td colspan="6" class="center">${t("noOneYet")}</td></tr>`;
         return;
@@ -153,7 +161,7 @@
             <td>${first.position}</td>
             <td>${nameCell}</td>
             <td>${instrCell}</td>
-            <td>${first.song || "\u2014"}</td>
+            <td>${formatSongCell(first.song, first.position)}</td>
             <td>${joinedTime}</td>
             <td>${typeCell}</td>
           </tr>`;
@@ -161,6 +169,46 @@
     }
 
     function esc(str) { return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+
+    function parseSongs(songStr) {
+      if (!songStr) return [];
+      try {
+        const parsed = JSON.parse(songStr);
+        if (Array.isArray(parsed)) return parsed;
+      } catch(e) {}
+      // Single song string
+      return [songStr];
+    }
+
+    function formatSongCell(songStr, position) {
+      const songs = parseSongs(songStr);
+      if (!songs.length) return "\u2014";
+      if (songs.length === 1) return songs[0];
+      // Multiple songs — show count + button
+      return `<button class="small btn-songs" onclick="showSongsPopup(${position})">\u266b ${songs.length} songs</button>`;
+    }
+
+    // Store songs data for popup
+    let queueData = [];
+
+    function showSongsPopup(position) {
+      const members = queueData.filter(p => p.position === position);
+      if (!members.length) return;
+      const songs = parseSongs(members[0].song);
+      const name = members[0].group_name || members[0].name;
+
+      const popup = document.createElement("div");
+      popup.className = "songs-popup";
+      popup.onclick = (e) => { if (e.target === popup) popup.remove(); };
+      popup.innerHTML = `
+        <div class="songs-popup-box">
+          <h3>\u266b ${name}</h3>
+          <ol>${songs.map(s => `<li>${s}</li>`).join("")}</ol>
+          <div class="center mt-1"><button class="small" onclick="this.closest('.songs-popup').remove()">OK</button></div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
 
     function formatTime(utcStr) {
       const d = new Date(utcStr + "Z");

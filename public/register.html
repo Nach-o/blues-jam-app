@@ -46,7 +46,14 @@
     <p class="mt-1" data-i18n="members">Miembros:</p>
     <div id="members-list"></div>
     <button class="secondary small" onclick="addMember()" data-i18n="addMember">+ Añadir miembro</button>
-    <input type="text" id="group-song" placeholder="Canción a tocar (opcional)" class="mt-1">
+
+    <p class="mt-1" style="color:#d4a647; font-weight:600;">Canciones (2 a 4):</p>
+    <div id="group-songs-list">
+      <div class="mt-1" id="group-song-1"></div>
+      <div class="mt-1" id="group-song-2"></div>
+    </div>
+    <button class="secondary small" onclick="addGroupSong()" id="add-song-btn">+ Añadir canción</button>
+
     <div class="center mt-1">
       <button onclick="submitGroup()" data-i18n="submitGroup">Enviar grupo</button>
       <button class="secondary" onclick="goBack()" data-i18n="back">Atrás</button>
@@ -113,12 +120,29 @@
       document.getElementById("members-list").appendChild(row);
     }
 
+    let groupSongCount = 2;
+
     document.addEventListener("DOMContentLoaded", () => {
       buildInstrumentGrid();
       addMember();
       buildSongSelector("ind-song");
-      buildSongSelector("group-song");
+      buildSongSelector("group-song-1");
+      buildSongSelector("group-song-2");
     });
+
+    function addGroupSong() {
+      if (groupSongCount >= 4) return;
+      groupSongCount++;
+      const container = document.getElementById("group-songs-list");
+      const div = document.createElement("div");
+      div.className = "mt-1";
+      div.id = "group-song-" + groupSongCount;
+      container.appendChild(div);
+      buildSongSelector("group-song-" + groupSongCount);
+      if (groupSongCount >= 4) {
+        document.getElementById("add-song-btn").style.display = "none";
+      }
+    }
 
     // Re-build on language change
     const origSetLang = setLang;
@@ -196,7 +220,19 @@
 
     async function submitGroup() {
       const groupName = document.getElementById("group-name").value.trim();
-      const song = getSongValue("group-song");
+
+      // Collect songs
+      const songs = [];
+      for (let i = 1; i <= groupSongCount; i++) {
+        const val = getSongValue("group-song-" + i);
+        if (val) songs.push(val);
+      }
+
+      if (songs.length > 0 && songs.length < 2) {
+        alert(getLang() === "es" ? "Los grupos deben elegir entre 2 y 4 canciones." : "Groups must choose between 2 and 4 songs.");
+        return;
+      }
+
       const rows = document.querySelectorAll(".member-row");
       const members = [];
       let missingInstrument = false;
@@ -219,7 +255,7 @@
       const res = await fetch("/api/register/group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupName, members, song })
+        body: JSON.stringify({ groupName, members, songs })
       });
       const data = await res.json();
       if (data.success) {
