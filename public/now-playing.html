@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now Playing - Stardust Blues Jam</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #0a0a0a;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .np-container {
+      text-align: center;
+      max-width: 800px;
+      width: 100%;
+    }
+    .np-label {
+      color: #8a7a60;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3rem;
+      margin-bottom: 0.5rem;
+    }
+    .np-group {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      font-weight: 900;
+      color: #d4a647;
+      text-shadow: 0 2px 20px rgba(212, 166, 71, 0.4);
+      margin-bottom: 0.8rem;
+      animation: title-glow 4s ease-in-out infinite alternate;
+    }
+    .np-song {
+      font-size: 1.8rem;
+      font-style: italic;
+      color: #e8dcc8;
+      margin-bottom: 1.5rem;
+    }
+    .np-members {
+      font-size: 1.3rem;
+      line-height: 2.2;
+      color: #c0b090;
+    }
+    .np-member-name {
+      color: #e8dcc8;
+      font-weight: 600;
+    }
+    .np-member-instrument {
+      color: #d4a647;
+    }
+    .np-waiting {
+      color: #6a5a45;
+      font-size: 1.5rem;
+      font-style: italic;
+    }
+    .np-next-label {
+      color: #8a7a60;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2rem;
+      margin-top: 2rem;
+      margin-bottom: 0.3rem;
+    }
+    .np-next {
+      color: #4caf50;
+      font-size: 1.1rem;
+    }
+    .np-nav {
+      position: fixed;
+      bottom: 1rem;
+      left: 0; right: 0;
+      text-align: center;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div class="np-container" id="np-container">
+    <p class="np-waiting">Loading...</p>
+  </div>
+
+  <div class="np-nav">
+    <button class="small secondary" onclick="window.location.href='index.html'" data-i18n="home">Inicio</button>
+    <button class="small secondary" onclick="window.location.href='queue.html'" data-i18n="viewQueue">Ver cola</button>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script>
+    const container = document.getElementById("np-container");
+
+    function renderNowPlaying(queue) {
+      if (!queue.length) {
+        container.innerHTML = `<p class="np-waiting">${t("noOneYet")}</p>`;
+        return;
+      }
+
+      // Find the "now playing" = first position with status "waiting"
+      const positions = [...new Set(queue.map(p => p.position))].sort((a, b) => a - b);
+      let nowPos = null;
+      let nextPos = null;
+
+      for (const pos of positions) {
+        const atPos = queue.filter(p => p.position === pos);
+        if (atPos[0].status === "waiting") {
+          if (nowPos === null) {
+            nowPos = pos;
+          } else if (nextPos === null) {
+            nextPos = pos;
+            break;
+          }
+        }
+      }
+
+      if (nowPos === null) {
+        container.innerHTML = `<p class="np-waiting">🎵 All done for tonight! 🎵</p>`;
+        return;
+      }
+
+      const nowMembers = queue.filter(p => p.position === nowPos);
+      const first = nowMembers[0];
+      const isGroup = nowMembers.length > 1 || first.group_name;
+      const groupName = first.group_name || first.name;
+
+      let html = `<p class="np-label">♪ NOW PLAYING ♪</p>`;
+      html += `<p class="np-group">${groupName}</p>`;
+
+      if (first.song) {
+        html += `<p class="np-song">"${first.song}"</p>`;
+      }
+
+      html += `<div class="np-members">`;
+      nowMembers.forEach(m => {
+        html += `<span class="np-member-name">${m.name}</span> <span class="np-member-instrument">(${m.instrument})</span><br>`;
+      });
+      html += `</div>`;
+
+      // Show next up
+      if (nextPos !== null) {
+        const nextMembers = queue.filter(p => p.position === nextPos);
+        const nextFirst = nextMembers[0];
+        const nextName = nextFirst.group_name || nextMembers.map(m => m.name).join(", ");
+        html += `<p class="np-next-label">▸ NEXT UP</p>`;
+        html += `<p class="np-next">${nextName}${nextFirst.song ? ' — "' + nextFirst.song + '"' : ''}</p>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Initial load
+    fetch("/api/queue").then(r => r.json()).then(renderNowPlaying);
+
+    // Live updates
+    const evtSource = new EventSource("/api/events");
+    evtSource.onmessage = (event) => {
+      renderNowPlaying(JSON.parse(event.data));
+    };
+  </script>
+</body>
+</html>

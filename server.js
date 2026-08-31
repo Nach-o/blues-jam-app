@@ -67,6 +67,56 @@ app.get("/api/queue", (req, res) => {
   res.json(queue);
 });
 
+// Get instrument demand — what's needed to form the next band
+app.get("/api/demand", (req, res) => {
+  const solos = db
+    .prepare(
+      "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
+    )
+    .all();
+
+  const instrumentCounts = {};
+  for (const s of solos) {
+    const instr = normalizeInstrument(s.instrument);
+    instrumentCounts[instr] = (instrumentCounts[instr] || 0) + 1;
+  }
+
+  const needed = [];
+  for (const instr of REQUIRED_INSTRUMENTS) {
+    if (!instrumentCounts[instr] || instrumentCounts[instr] < 1) {
+      needed.push(instr);
+    }
+  }
+
+  res.json({
+    waitingSolos: solos.length,
+    instrumentCounts,
+    needed,
+    readyToMerge: needed.length === 0
+  });
+});
+
+// Get stats for end-of-night summary
+app.get("/api/stats", (req, res) => {
+  const total = db.prepare("SELECT COUNT(*) as cnt FROM participants").get().cnt;
+  const played = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'played'").get().cnt;
+  const missing = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'missing'").get().cnt;
+  const waiting = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'waiting'").get().cnt;
+  const groups = db.prepare("SELECT COUNT(DISTINCT group_name) as cnt FROM participants WHERE group_name IS NOT NULL").get().cnt;
+  const instruments = db.prepare("SELECT instrument, COUNT(*) as cnt FROM participants GROUP BY instrument ORDER BY cnt DESC").all();
+  const songs = db.prepare("SELECT song, COUNT(*) as cnt FROM participants WHERE song IS NOT NULL AND song != '' GROUP BY song ORDER BY cnt DESC LIMIT 10").all();
+
+  res.json({
+    totalMusicians: total,
+    groupsFormed: groups,
+    played,
+    missing,
+    waiting,
+    instruments,
+    topSongs: songs
+  });
+});
+
 // Register individual
 app.post("/api/register/individual", (req, res) => {
   const { name, instrument, song } = req.body;
@@ -243,6 +293,30 @@ app.delete("/api/queue", requirePin, (req, res) => {
   db.prepare("DELETE FROM participants").run();
   broadcastUpdate();
   res.json({ success: true });
+});
+
+// Repeat sign-up — re-queue someone who already played
+app.post("/api/register/repeat", (req, res) => {
+  const { name, instrument, song } = req.body;
+  if (!name || !instrument) {
+    return res.status(400).json({ error: "Name and instrument required" });
+  }
+
+  const maxPos = db
+    .prepare("SELECT COALESCE(MAX(position), 0) as max FROM participants")
+    .get();
+  const position = maxPos.max + 1;
+
+  db.prepare(
+    "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
+  ).run(name, instrument, song || null, position);
+
+  // Try to join existing group or form new one
+  const joinedExisting = tryJoinExistingGroup();
+  const autoGroupResult = joinedExisting ? null : tryAutoGroup();
+
+  broadcastUpdate();
+  res.json({ success: true, position });
 });
 
 // --- Auto-grouping logic ---

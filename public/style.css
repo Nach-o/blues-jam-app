@@ -297,3 +297,132 @@ tr.row-next td { color: #7cdf7c; font-weight: 600; }
 
 .lang-btn { font-size: 0.75rem !important; padding: 0.3rem 0.5rem !important; margin: 0.15rem !important; }
 .lang-btn.active-lang { background: #d4a647 !important; color: #1a1510 !important; border-color: #d4a647 !important; }
+
+
+/* Waiting for band badge */
+.badge-waiting {
+  background: #b8860b !important;
+  animation: pulse-waiting 2s ease-in-out infinite;
+  font-size: 0.65rem !important;
+}
+
+@keyframes pulse-waiting {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Instrument demand panel */
+.demand-panel {
+  background: linear-gradient(145deg, #1a1510, #12100d);
+  border: 1px solid #2a2015;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  max-width: 600px;
+  width: 100%;
+  margin: 0.8rem auto;
+  position: relative;
+  z-index: 1;
+}
+
+.demand-panel h3 {
+  color: #d4a647;
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.demand-instruments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.demand-chip {
+  padding: 0.3rem 0.7rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.demand-chip.needed {
+  background: #8b2020;
+  color: #fcc;
+  border: 1px solid #a03030;
+}
+
+.demand-chip.have {
+  background: #1a3a1a;
+  color: #7cdf7c;
+  border: 1px solid #2a5a2a;
+}
+
+.demand-ready {
+  color: #7cdf7c;
+  font-weight: 600;
+}
+
+/* Now playing fullscreen */
+.now-playing-fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #0d0d0d;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.now-playing-fullscreen h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.now-playing-fullscreen .np-song {
+  color: #d4a647;
+  font-size: 1.8rem;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.now-playing-fullscreen .np-members {
+  font-size: 1.3rem;
+  line-height: 2;
+}
+
+.now-playing-fullscreen .np-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+/* Stats page */
+.stat-card {
+  display: inline-block;
+  background: #1a1510;
+  border: 1px solid #2a2015;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 0.4rem;
+  text-align: center;
+  min-width: 120px;
+}
+
+.stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #d4a647;
+  font-family: 'Playfair Display', serif;
+}
+
+.stat-card .stat-label {
+  font-size: 0.8rem;
+  color: #8a7a60;
+}
+
+/* Play again button in queue */
+.play-again-row {
+  text-align: center;
+  padding: 0.8rem;
+}

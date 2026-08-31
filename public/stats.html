@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats - Stardust Blues Jam</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="lang-switcher"></div>
+
+  <h1>&#127925; <span data-i18n="statsTitle">Estadísticas de esta noche</span> &#127925;</h1>
+
+  <div id="stats-content">
+    <p class="center" style="color:#8a7a60;">Loading...</p>
+  </div>
+
+  <div class="center mt-1">
+    <button onclick="window.location.href='index.html'" data-i18n="home">Inicio</button>
+    <button class="secondary" onclick="window.location.href='queue.html'" data-i18n="viewQueue">Ver cola</button>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script>
+    const content = document.getElementById("stats-content");
+
+    function renderStats(data) {
+      if (data.totalMusicians === 0) {
+        content.innerHTML = `<div class="container"><p class="center">${t("statsNoData")}</p></div>`;
+        return;
+      }
+
+      let html = `<div class="center">`;
+      html += statCard(data.totalMusicians, t("statsTotalMusicians"));
+      html += statCard(data.groupsFormed, t("statsGroupsFormed"));
+      html += statCard(data.played, t("statsPlayed"));
+      html += statCard(data.missing, t("statsMissing"));
+      html += statCard(data.waiting, t("statsWaiting"));
+      html += `</div>`;
+
+      // Top instruments
+      if (data.instruments && data.instruments.length) {
+        html += `<div class="container">`;
+        html += `<h2>${t("statsTopInstruments")}</h2>`;
+        html += `<table><thead><tr><th>#</th><th data-i18n="colInstrument">Instrumento</th><th>Total</th></tr></thead><tbody>`;
+        data.instruments.forEach((row, i) => {
+          const pct = data.totalMusicians > 0 ? Math.round(row.cnt / data.totalMusicians * 100) : 0;
+          html += `<tr><td>${i + 1}</td><td>${row.instrument}</td><td>${row.cnt} (${pct}%)</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+
+      // Top songs
+      if (data.topSongs && data.topSongs.length) {
+        html += `<div class="container">`;
+        html += `<h2>${t("statsTopSongs")}</h2>`;
+        html += `<table><thead><tr><th>#</th><th data-i18n="colSong">Canción</th><th>Total</th></tr></thead><tbody>`;
+        data.topSongs.forEach((row, i) => {
+          html += `<tr><td>${i + 1}</td><td>${row.song}</td><td>${row.cnt}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+
+      content.innerHTML = html;
+    }
+
+    function statCard(value, label) {
+      return `<div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+    }
+
+    // Initial load
+    fetch("/api/stats").then(r => r.json()).then(renderStats);
+
+    // Refresh stats when queue changes
+    const evtSource = new EventSource("/api/events");
+    evtSource.onmessage = () => {
+      fetch("/api/stats").then(r => r.json()).then(renderStats);
+    };
+  </script>
+</body>
+</html>

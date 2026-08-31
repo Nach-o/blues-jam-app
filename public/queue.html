@@ -69,11 +69,23 @@
         else if (first.position === nextUpPosition) rowClass = "row-next";
 
         const isGroup = members.length > 1 || first.group_name;
+        const isWaitingSolo = !isGroup && first.entry_type === "individual" && !first.group_name && first.status === "waiting";
         let nameCell = isGroup
           ? `<span class="badge">${first.group_name || "Group"}</span> ${members.map(m => m.name).join(", ")}`
           : first.name;
+        if (isWaitingSolo) nameCell += ` <span class="badge badge-waiting">${t("waitingForBand")}</span>`;
         let instrCell = isGroup ? members.map(m => m.instrument).join(", ") : first.instrument;
         const joinedTime = first.created_at ? formatTime(first.created_at) : "\u2014";
+        const isPlayed = first.status === "played";
+
+        let typeCell = isGroup ? t("typeGroup") : t("typeSolo");
+        if (isPlayed) {
+          // Build play-again buttons for each member
+          const againBtns = members.map(m =>
+            `<button class="small secondary" onclick="playAgain('${m.name.replace(/'/g, "\\'")}','${m.instrument.replace(/'/g, "\\'")}')">↻ ${m.name}</button>`
+          ).join(" ");
+          typeCell += `<div class="play-again-row">${againBtns}</div>`;
+        }
 
         return `
           <tr class="${rowClass}">
@@ -82,7 +94,7 @@
             <td>${instrCell}</td>
             <td>${first.song || "\u2014"}</td>
             <td>${joinedTime}</td>
-            <td>${isGroup ? t("typeGroup") : t("typeSolo")}</td>
+            <td>${typeCell}</td>
           </tr>`;
       }).join("");
     }
@@ -95,6 +107,18 @@
     fetch("/api/queue").then(r => r.json()).then(renderQueue);
     const evtSource = new EventSource("/api/events");
     evtSource.onmessage = (event) => { renderQueue(JSON.parse(event.data)); };
+
+    async function playAgain(name, instrument) {
+      const res = await fetch("/api/register/repeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, instrument })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // SSE will update the queue automatically
+      }
+    }
   </script>
 </body>
 </html>
