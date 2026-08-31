@@ -63,6 +63,24 @@
     </div>
   </div>
 
+  <!-- Solo time-gate popup -->
+  <div class="pin-overlay hidden" id="solo-popup">
+    <div class="pin-box" style="max-width:400px;">
+      <h2 style="color:#d4a647;">&#127925;</h2>
+      <p class="mt-1" id="solo-popup-msg-es" style="line-height:1.6;">
+        El registro individual solo est&aacute; disponible los <strong>jueves a partir de las 20:30</strong> (hora de Espa&ntilde;a).<br><br>
+        Los grupos pueden registrarse en cualquier momento durante la semana.<br><br>
+        &iexcl;Nos vemos el jueves!
+      </p>
+      <p class="mt-1 hidden" id="solo-popup-msg-en" style="line-height:1.6;">
+        Solo registration is only available on <strong>Thursdays from 20:30</strong> (Spain time).<br><br>
+        Groups can register anytime during the week.<br><br>
+        See you on Thursday!
+      </p>
+      <button class="mt-1" onclick="closeSoloPopup()">OK</button>
+    </div>
+  </div>
+
   <script src="i18n.js"></script>
   <script src="songs.js"></script>
   <script>
@@ -115,13 +133,36 @@
       });
     };
 
+    function isSoloOpen() {
+      // Solo registration opens Thursdays at 20:30 Spain time (Europe/Madrid)
+      const now = new Date();
+      const spain = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Madrid" }));
+      const day = spain.getDay(); // 0=Sun, 4=Thu
+      const hour = spain.getHours();
+      const min = spain.getMinutes();
+      // Thursday (4) from 20:30 onwards
+      return day === 4 && (hour > 20 || (hour === 20 && min >= 30));
+    }
+
     function chooseType(type) {
+      if (type === "individual" && !isSoloOpen()) {
+        // Show the right language message
+        const isEs = getLang() === "es";
+        document.getElementById("solo-popup-msg-es").classList.toggle("hidden", !isEs);
+        document.getElementById("solo-popup-msg-en").classList.toggle("hidden", isEs);
+        document.getElementById("solo-popup").classList.remove("hidden");
+        return;
+      }
       document.getElementById("step-type").classList.add("hidden");
       if (type === "individual") {
         document.getElementById("step-individual").classList.remove("hidden");
       } else {
         document.getElementById("step-group").classList.remove("hidden");
       }
+    }
+
+    function closeSoloPopup() {
+      document.getElementById("solo-popup").classList.add("hidden");
     }
 
     function goBack() {
