@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vapor Jam</title>
+  <title>Stardust Blues Jam</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="lang-switcher"></div>
 
-  <h1 data-i18n="title">Vapor Jam</h1>
+  <h1 data-i18n="title">Stardust Blues Jam</h1>
+  <p class="subtitle" id="next-thursday"></p>
 
   <div class="container">
     <p class="center mb-1" data-i18n="scanPrompt">¡Escanea el código QR del local para unirte!</p>
@@ -18,7 +19,7 @@
 
     <div class="center mt-1">
       <p style="color:#aaa;" data-i18n="skipScan">O únete directamente:</p>
-      <button onclick="window.location.href='register.html'" data-i18n="joinBtn">Unirse al Vapor Jam</button>
+      <button onclick="window.location.href='register.html'" data-i18n="joinBtn">Unirse al Stardust Blues Jam</button>
     </div>
   </div>
 
@@ -32,6 +33,7 @@
   <div class="blues-quote" id="daily-quote"></div>
 
   <script src="i18n.js"></script>
+  <script>document.getElementById("next-thursday").textContent = getNextThursdayFormatted();</script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     // Daily rotating blues quotes

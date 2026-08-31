@@ -1,17 +1,17 @@
 const translations = {
   en: {
-    title: "Vapor Jam",
+    title: "Stardust Blues Jam",
     subtitle: '"The blues is the roots, everything else is the fruits." — Willie Dixon',
     scanPrompt: "Scan the venue QR code to join the jam!",
     skipScan: "Or skip scanning and join directly:",
-    joinBtn: "Join Vapor Jam",
+    joinBtn: "Join Stardust Blues Jam",
     viewQueue: "View Queue",
     showQR: "Show QR",
     howItWorks: "How it works",
     admin: "Admin",
     home: "Home",
     // Register
-    joinTitle: "Join Vapor Jam",
+    joinTitle: "Join Stardust Blues Jam",
     howJoining: "How are you joining?",
     asIndividual: "As Individual",
     asGroup: "As a Group",
@@ -42,7 +42,7 @@ const translations = {
     typeGroup: "Group",
     typeSolo: "Solo",
     // Show QR
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "Show this QR to let people join tonight's jam",
     // Instruments
     vocals: "Vocals",
@@ -61,17 +61,17 @@ const translations = {
     alertOneMember: "Please add at least one member with a name and instrument."
   },
   es: {
-    title: "Vapor Jam",
+    title: "Stardust Blues Jam",
     subtitle: '"El blues es la raíz, todo lo demás son los frutos." — Willie Dixon',
     scanPrompt: "¡Escanea el código QR del local para unirte!",
     skipScan: "O únete directamente:",
-    joinBtn: "Unirse al Vapor Jam",
+    joinBtn: "Unirse al Stardust Blues Jam",
     viewQueue: "Ver cola",
     showQR: "Mostrar QR",
     howItWorks: "Cómo funciona",
     admin: "Admin",
     home: "Inicio",
-    joinTitle: "Unirse al Vapor Jam",
+    joinTitle: "Unirse al Stardust Blues Jam",
     howJoining: "¿Cómo te unes?",
     asIndividual: "Individual",
     asGroup: "Como grupo",
@@ -100,7 +100,7 @@ const translations = {
     colType: "Tipo",
     typeGroup: "Grupo",
     typeSolo: "Solo",
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "Muestra este QR para que la gente se una al jam de esta noche",
     vocals: "Voz",
     guitar: "Guitarra",
@@ -121,13 +121,13 @@ const translations = {
     subtitle: '"Блюз — это корни, всё остальное — плоды." — Вилли Диксон',
     scanPrompt: "Отсканируйте QR-код заведения, чтобы присоединиться!",
     skipScan: "Или присоединяйтесь напрямую:",
-    joinBtn: "Присоединиться к Vapor Jam",
+    joinBtn: "Присоединиться к Stardust Blues Jam",
     viewQueue: "Очередь",
     showQR: "Показать QR",
     howItWorks: "Как это работает",
     admin: "Админ",
     home: "Главная",
-    joinTitle: "Присоединиться к Vapor Jam",
+    joinTitle: "Присоединиться к Stardust Blues Jam",
     howJoining: "Как вы присоединяетесь?",
     asIndividual: "Индивидуально",
     asGroup: "Как группа",
@@ -156,7 +156,7 @@ const translations = {
     colType: "Тип",
     typeGroup: "Группа",
     typeSolo: "Соло",
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "Покажите этот QR, чтобы люди могли присоединиться",
     vocals: "Вокал",
     guitar: "Гитара",
@@ -173,17 +173,17 @@ const translations = {
     alertOneMember: "Добавьте хотя бы одного участника с именем и инструментом."
   },
   pl: {
-    title: "Vapor Jam",
+    title: "Stardust Blues Jam",
     subtitle: '"Blues to korzenie, wszystko inne to owoce." — Willie Dixon',
     scanPrompt: "Zeskanuj kod QR lokalu, aby dołączyć!",
     skipScan: "Lub dołącz bezpośrednio:",
-    joinBtn: "Dołącz do Vapor Jam",
+    joinBtn: "Dołącz do Stardust Blues Jam",
     viewQueue: "Zobacz kolejkę",
     showQR: "Pokaż QR",
     howItWorks: "Jak to działa",
     admin: "Admin",
     home: "Strona główna",
-    joinTitle: "Dołącz do Vapor Jam",
+    joinTitle: "Dołącz do Stardust Blues Jam",
     howJoining: "Jak dołączasz?",
     asIndividual: "Indywidualnie",
     asGroup: "Jako grupa",
@@ -212,7 +212,7 @@ const translations = {
     colType: "Typ",
     typeGroup: "Grupa",
     typeSolo: "Solo",
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "Pokaż ten QR, aby ludzie mogli dołączyć",
     vocals: "Wokal",
     guitar: "Gitara",
@@ -233,13 +233,13 @@ const translations = {
     subtitle: '"蓝调是根，其他一切都是果实。" — 威利·迪克森',
     scanPrompt: "扫描场地二维码加入即兴演奏！",
     skipScan: "或直接加入：",
-    joinBtn: "加入 Vapor Jam",
+    joinBtn: "加入 Stardust Blues Jam",
     viewQueue: "查看队列",
     showQR: "显示二维码",
     howItWorks: "如何使用",
     admin: "管理",
     home: "首页",
-    joinTitle: "加入 Vapor Jam",
+    joinTitle: "加入 Stardust Blues Jam",
     howJoining: "你如何加入？",
     asIndividual: "个人",
     asGroup: "团队",
@@ -268,7 +268,7 @@ const translations = {
     colType: "类型",
     typeGroup: "团队",
     typeSolo: "独奏",
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "展示此二维码让大家加入今晚的即兴演奏",
     vocals: "人声",
     guitar: "吉他",
@@ -289,13 +289,13 @@ const translations = {
     subtitle: '"ブルースは根、それ以外はすべて実。" — ウィリー・ディクソン',
     scanPrompt: "会場のQRコードをスキャンして参加！",
     skipScan: "または直接参加：",
-    joinBtn: "Vapor Jam に参加",
+    joinBtn: "Stardust Blues Jam に参加",
     viewQueue: "キューを見る",
     showQR: "QR表示",
     howItWorks: "使い方",
     admin: "管理",
     home: "ホーム",
-    joinTitle: "Vapor Jam に参加",
+    joinTitle: "Stardust Blues Jam に参加",
     howJoining: "どのように参加しますか？",
     asIndividual: "個人で",
     asGroup: "グループで",
@@ -324,7 +324,7 @@ const translations = {
     colType: "タイプ",
     typeGroup: "グループ",
     typeSolo: "ソロ",
-    showQRTitle: "Vapor Jam",
+    showQRTitle: "Stardust Blues Jam",
     showQRSubtitle: "このQRを見せて今夜のジャムに参加してもらおう",
     vocals: "ボーカル",
     guitar: "ギター",
@@ -397,3 +397,19 @@ document.addEventListener("DOMContentLoaded", () => {
   renderLangSwitcher("lang-switcher");
   applyTranslations();
 });
+
+
+// Get next Thursday (or today if it's Thursday)
+function getNextThursday() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 4=Thu
+  const diff = (4 - day + 7) % 7; // days until next Thursday (0 if today is Thursday)
+  const next = new Date(now);
+  next.setDate(now.getDate() + diff);
+  return next;
+}
+
+function getNextThursdayFormatted() {
+  const d = getNextThursday();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
