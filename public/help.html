@@ -16,6 +16,7 @@
     .color-green { background: #4caf50; }
     .color-grey { background: #555; }
     .color-red { background: #d32f2f; }
+    .color-gold { background: #b8860b; }
   </style>
 </head>
 <body>
@@ -28,58 +29,61 @@
 
   <!-- ENGLISH -->
   <div class="container help-content active" id="help-en">
-    <h3>For musicians</h3>
+    <h3>How to sign up</h3>
     <ul>
-      <li>Scan the venue QR code with your phone or tap "Join Stardust Blues Jam"</li>
-      <li>Choose how you're joining: <strong>Individual</strong> or <strong>Group</strong></li>
-      <li>Enter your name, select your instrument (required), and optionally a song</li>
+      <li>Scan the venue QR code with your phone or tap <strong>"Join Stardust Blues Jam"</strong></li>
+      <li>Choose how you're joining: <strong>Individual</strong> (solo) or <strong>Group</strong> (with your own band)</li>
+      <li>Enter your name and select your instrument (required)</li>
+      <li>Optionally pick a song from the list or type your own</li>
       <li>Submit and you're in the queue!</li>
     </ul>
 
     <h3>The queue</h3>
-    <p>The table shows the live performance order. It updates automatically for everyone watching — no refresh needed.</p>
+    <p>The table shows the live performance order. It updates automatically for everyone — no refresh needed.</p>
 
     <h3>Color coding</h3>
     <ul>
       <li><span class="color-sample color-green"></span> <strong>Green</strong> — next up to play</li>
-      <li><span class="color-sample color-grey"></span> <strong>Grey (strikethrough)</strong> — already played</li>
-      <li><span class="color-sample color-red"></span> <strong>Red</strong> — marked as missing / no-show</li>
+      <li><span class="color-sample color-grey"></span> <strong>Grey</strong> — already played</li>
+      <li><span class="color-sample color-red"></span> <strong>Red</strong> — no-show / missing</li>
+      <li><span class="color-sample color-gold"></span> <strong>"Waiting for band"</strong> — solo musician waiting to be grouped</li>
       <li>No color — waiting for their turn</li>
     </ul>
 
-    <h3>Auto-grouping of solos</h3>
-    <p>When individuals sign up separately, the app merges them into a band automatically once the minimum requirement is met: at least one <strong>Guitar</strong> + one <strong>Bass</strong> + one <strong>Drums</strong>.</p>
-
-    <p><strong>Instrument limits per group:</strong></p>
+    <h3>How bands are formed automatically</h3>
+    <p>If you sign up as <strong>Individual</strong>, the app will try to group you with other solo musicians. A band needs at least:</p>
     <ul>
-      <li>Guitar: max 2</li>
-      <li>All other instruments (Bass, Drums, Vocals, Keyboards, Harmonica, Other): max 1 each</li>
+      <li>&#127928; 1 Guitar (max 2)</li>
+      <li>&#127928; 1 Bass</li>
+      <li>&#129345; 1 Drums</li>
     </ul>
+    <p>Other instruments (Vocals, Keyboards, Harmonica, etc.) are added when available — max 1 of each.</p>
 
-    <p><strong>Song priority:</strong> If multiple solos chose the same song (e.g. "Crossroads"), they get grouped together — but only if Guitar + Bass + Drums all chose that same song. Other instruments (Vocals, Keys, Harmonica) can join from the no-song pool to complete the band.</p>
+    <h3>Choosing a song matters</h3>
+    <p>When you pick a song, the app groups you with other musicians who picked the <strong>same song</strong>. For the song-based merge to trigger, Guitar + Bass + Drums must all have chosen that song.</p>
+    <p>If you <strong>don't pick a song</strong>, you'll be grouped with other no-song solos and the app will suggest a random blues style (e.g. "Shuffle Blues in A").</p>
 
-    <p>Example:</p>
-    <ul>
-      <li>Person A signs up solo — Guitar, song: "Crossroads"</li>
-      <li>Person B signs up solo — Bass, song: "Crossroads"</li>
-      <li>Person C signs up solo — Drums, song: "Crossroads" → <strong>merge triggered!</strong></li>
-      <li>Person D (Vocals, no song) gets added as an extra</li>
-    </ul>
-    <p>If only Guitar and Bass chose "Crossroads" but no Drums did, the song-based merge won't trigger — they wait until a Drums player also picks "Crossroads".</p>
-    <p>After the merge, a new cycle starts. The next Guitar + Bass + Drums combo will form "Jam Band #2", and so on.</p>
+    <h3>"+ Join" button</h3>
+    <p>When you see a solo artist or incomplete group in the queue with a song, you can tap the <strong>"+ Join"</strong> button to join them directly — just enter your name and pick an available instrument. No need to go back to the registration page.</p>
 
-    <h3>Joining existing groups</h3>
-    <p>If a solo musician signs up and there's already a group waiting to play that has room for their instrument, they get added to that group automatically. For example, if "Jam Band #1" has Guitar + Bass + Drums but no Vocals, and a Vocalist signs up solo — they join "Jam Band #1" instead of waiting alone.</p>
-    <p>This only happens if the group hasn't played yet and the instrument limits aren't exceeded.</p>
+    <h3>Queue ordering</h3>
+    <p>Complete bands (Guitar + Bass + Drums) stay at their position in the queue. Incomplete groups that are still waiting for members get moved to the bottom until they're complete.</p>
+
+    <h3>Play again</h3>
+    <p>After your group has played, you'll see a <strong>"&#8635; Play Again"</strong> button next to your name. Tap it to re-join the queue for another round.</p>
+
+    <h3>Instruments needed</h3>
+    <p>The home page shows which instruments are currently needed to form the next band. Check it to see if your instrument is in demand!</p>
   </div>
 
   <!-- SPANISH -->
   <div class="container help-content" id="help-es">
-    <h3>Para los m&uacute;sicos</h3>
+    <h3>C&oacute;mo apuntarse</h3>
     <ul>
-      <li>Escanea el c&oacute;digo QR del local con tu m&oacute;vil o pulsa "Join Stardust Blues Jam"</li>
-      <li>Elige c&oacute;mo entras: <strong>Individual</strong> o <strong>Grupo</strong></li>
-      <li>Pon tu nombre, selecciona tu instrumento (obligatorio) y opcionalmente una canci&oacute;n</li>
+      <li>Escanea el c&oacute;digo QR del local o pulsa <strong>"Unirse al Stardust Blues Jam"</strong></li>
+      <li>Elige c&oacute;mo entras: <strong>Individual</strong> (solo) o <strong>Grupo</strong> (con tu propia banda)</li>
+      <li>Pon tu nombre y selecciona tu instrumento (obligatorio)</li>
+      <li>Opcionalmente elige una canci&oacute;n de la lista o escribe la tuya</li>
       <li>Confirma y entras en la cola</li>
     </ul>
 
@@ -89,35 +93,36 @@
     <h3>C&oacute;digo de colores</h3>
     <ul>
       <li><span class="color-sample color-green"></span> <strong>Verde</strong> — siguiente en tocar</li>
-      <li><span class="color-sample color-grey"></span> <strong>Gris (tachado)</strong> — ya ha tocado</li>
+      <li><span class="color-sample color-grey"></span> <strong>Gris</strong> — ya ha tocado</li>
       <li><span class="color-sample color-red"></span> <strong>Rojo</strong> — no se ha presentado</li>
+      <li><span class="color-sample color-gold"></span> <strong>"Esperando banda"</strong> — m&uacute;sico solo esperando a ser agrupado</li>
       <li>Sin color — esperando su turno</li>
     </ul>
 
-    <h3>Auto-agrupaci&oacute;n de individuales</h3>
-    <p>Cuando se apuntan individuales por separado, la app los agrupa autom&aacute;ticamente en una banda cuando se cumplen los requisitos m&iacute;nimos: al menos un <strong>Guitarra</strong> + un <strong>Bajo</strong> + una <strong>Bater&iacute;a</strong>.</p>
-
-    <p><strong>L&iacute;mite de instrumentos por grupo:</strong></p>
+    <h3>C&oacute;mo se forman las bandas autom&aacute;ticamente</h3>
+    <p>Si te apuntas como <strong>Individual</strong>, la app intentar&aacute; agruparte con otros m&uacute;sicos solos. Una banda necesita al menos:</p>
     <ul>
-      <li>Guitarra: m&aacute;ximo 2</li>
-      <li>Resto de instrumentos (Bajo, Bater&iacute;a, Voz, Teclados, Arm&oacute;nica, Otro): m&aacute;ximo 1 de cada</li>
+      <li>&#127928; 1 Guitarra (m&aacute;ximo 2)</li>
+      <li>&#127928; 1 Bajo</li>
+      <li>&#129345; 1 Bater&iacute;a</li>
     </ul>
+    <p>Otros instrumentos (Voz, Teclados, Arm&oacute;nica, etc.) se a&ntilde;aden cuando est&aacute;n disponibles — m&aacute;ximo 1 de cada.</p>
 
-    <p><strong>Prioridad por canci&oacute;n:</strong> Si varios individuales eligen la misma canci&oacute;n (ej. "Crossroads"), se agrupan juntos — pero solo si Guitarra + Bajo + Bater&iacute;a eligieron esa misma canci&oacute;n. Otros instrumentos (Voz, Teclados, Arm&oacute;nica) pueden unirse desde el grupo sin canci&oacute;n para completar la banda.</p>
+    <h3>Elegir canci&oacute;n importa</h3>
+    <p>Cuando eliges una canci&oacute;n, la app te agrupa con otros m&uacute;sicos que eligieron la <strong>misma canci&oacute;n</strong>. Para que se active el merge por canci&oacute;n, Guitarra + Bajo + Bater&iacute;a deben haber elegido esa canci&oacute;n.</p>
+    <p>Si <strong>no eliges canci&oacute;n</strong>, se te agrupar&aacute; con otros solistas sin canci&oacute;n y la app sugerir&aacute; un estilo de blues aleatorio (ej. "Shuffle Blues in A").</p>
 
-    <p>Ejemplo:</p>
-    <ul>
-      <li>Persona A se apunta sola — Guitarra, canci&oacute;n: "Crossroads"</li>
-      <li>Persona B se apunta sola — Bajo, canci&oacute;n: "Crossroads"</li>
-      <li>Persona C se apunta sola — Bater&iacute;a, canci&oacute;n: "Crossroads" → <strong>se dispara el merge</strong></li>
-      <li>Persona D (Voz, sin canci&oacute;n) se a&ntilde;ade como extra</li>
-    </ul>
-    <p>Si solo Guitarra y Bajo eligieron "Crossroads" pero ninguna Bater&iacute;a lo hizo, el merge por canci&oacute;n no se activa — esperan hasta que un batería tambi&eacute;n elija "Crossroads".</p>
-    <p>Tras el merge, empieza un nuevo ciclo. La siguiente combinaci&oacute;n de Guitarra + Bajo + Bater&iacute;a formar&aacute; "Jam Band #2", y as&iacute; sucesivamente.</p>
+    <h3>Bot&oacute;n "+ Join"</h3>
+    <p>Cuando veas un artista solo o un grupo incompleto en la cola con una canci&oacute;n, puedes pulsar el bot&oacute;n <strong>"+ Join"</strong> para unirte directamente — solo introduce tu nombre y elige un instrumento disponible. No necesitas volver a la p&aacute;gina de registro.</p>
 
-    <h3>Unirse a grupos existentes</h3>
-    <p>Si un m&uacute;sico se apunta solo y ya hay un grupo esperando para tocar que tiene hueco para su instrumento, se a&ntilde;ade a ese grupo autom&aacute;ticamente. Por ejemplo, si "Jam Band #1" tiene Guitarra + Bajo + Bater&iacute;a pero no Voz, y un Vocalista se apunta solo — se une a "Jam Band #1" en lugar de esperar solo.</p>
-    <p>Esto solo ocurre si el grupo a&uacute;n no ha tocado y no se exceden los l&iacute;mites de instrumento.</p>
+    <h3>Orden de la cola</h3>
+    <p>Las bandas completas (Guitarra + Bajo + Bater&iacute;a) mantienen su posici&oacute;n en la cola. Los grupos incompletos que a&uacute;n esperan miembros se mueven al final hasta que est&eacute;n completos.</p>
+
+    <h3>Tocar otra vez</h3>
+    <p>Despu&eacute;s de que tu grupo haya tocado, ver&aacute;s un bot&oacute;n <strong>"&#8635; Tocar otra vez"</strong> junto a tu nombre. P&uacute;lsalo para volver a la cola para otra ronda.</p>
+
+    <h3>Instrumentos necesarios</h3>
+    <p>La p&aacute;gina principal muestra qu&eacute; instrumentos se necesitan ahora mismo para formar la pr&oacute;xima banda. &iexcl;Mira si tu instrumento est&aacute; en demanda!</p>
   </div>
 
   <div class="center mt-1">
