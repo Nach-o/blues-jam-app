@@ -133,14 +133,18 @@
       });
     };
 
+    function isAdmin() {
+      return localStorage.getItem("blues-jam-admin") === "true";
+    }
+
     function isSoloOpen() {
+      if (isAdmin()) return true;
       // Solo registration opens Thursdays at 20:30 Spain time (Europe/Madrid)
       const now = new Date();
       const spain = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Madrid" }));
       const day = spain.getDay(); // 0=Sun, 4=Thu
       const hour = spain.getHours();
       const min = spain.getMinutes();
-      // Thursday (4) from 20:30 onwards
       return day === 4 && (hour > 20 || (hour === 20 && min >= 30));
     }
 

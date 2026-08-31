@@ -70,6 +70,7 @@
 
       if (res.ok) {
         adminPin = pin;
+        localStorage.setItem("blues-jam-admin", "true");
         document.getElementById("pin-overlay").classList.add("hidden");
         document.getElementById("admin-content").classList.remove("hidden");
         loadQueue();
