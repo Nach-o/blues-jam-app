@@ -15,6 +15,7 @@
       <input type="password" id="pin-input" maxlength="10" placeholder="PIN">
       <p id="pin-error" style="color:#e94560; display:none;">Wrong PIN. Try again.</p>
       <button onclick="verifyPin()">Enter</button>
+      <button class="secondary" onclick="window.location.href='index.html'">Home</button>
     </div>
   </div>
 
@@ -56,6 +57,7 @@
     <div class="center mt-1">
       <button onclick="window.location.href='index.html'">Home</button>
       <button class="secondary" onclick="window.location.href='queue.html'">Public Queue</button>
+      <button class="danger" onclick="logoutAdmin()">Log out admin</button>
     </div>
   </div>
 
@@ -226,6 +228,12 @@
       const label = document.getElementById("solo-gate-label");
       label.textContent = data.enabled ? "ON — Solo only on Thursdays 20:30" : "OFF — Solo open anytime";
       label.style.color = data.enabled ? "#d4a647" : "#7cdf7c";
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem("blues-jam-admin");
+      adminPin = "";
+      window.location.href = "index.html";
     }
   </script>
 </body>
