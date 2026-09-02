@@ -90,6 +90,23 @@ function buildSongSelector(inputId) {
   customInput.style.display = "none";
   customInput.style.marginTop = "0.4rem";
 
+  // Key input (default "Original Version")
+  const keyInput = document.createElement("input");
+  keyInput.type = "text";
+  keyInput.id = inputId + "-key";
+  keyInput.value = "Original Version";
+  keyInput.placeholder = getLang() === "es" ? "Tono (ej. A, Em...)" : "Key (e.g. A, Em...)";
+  keyInput.style.display = "none";
+  keyInput.style.marginTop = "0.4rem";
+  keyInput.title = getLang() === "es" ? "Tono" : "Key";
+  // Select all text on focus so people can easily overwrite "Original Version"
+  keyInput.addEventListener("focus", () => keyInput.select());
+
+  function updateKeyVisibility() {
+    const hasSong = select.value && select.value !== "";
+    keyInput.style.display = hasSong ? "block" : "none";
+  }
+
   // Toggle custom input visibility
   select.addEventListener("change", () => {
     if (select.value === "__custom__") {
@@ -99,10 +116,12 @@ function buildSongSelector(inputId) {
       customInput.style.display = "none";
       customInput.value = "";
     }
+    updateKeyVisibility();
   });
 
   wrapper.appendChild(select);
   wrapper.appendChild(customInput);
+  wrapper.appendChild(keyInput);
 
   // Replace the old input
   oldInput.parentNode.replaceChild(wrapper, oldInput);
@@ -119,4 +138,17 @@ function getSongValue(inputId) {
     return (customInput?.value || "").trim();
   }
   return select.value;
+}
+
+/**
+ * Get the {song, key} object from a song selector combo.
+ * Returns null if no song selected.
+ */
+function getSongObject(inputId) {
+  const song = getSongValue(inputId);
+  if (!song) return null;
+  const keyInput = document.getElementById(inputId + "-key");
+  let key = (keyInput?.value || "").trim();
+  if (!key) key = "Original Version";
+  return { song, key };
 }

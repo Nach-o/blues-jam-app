@@ -126,8 +126,9 @@
       let html = `<p class="np-label">♪ NOW PLAYING ♪</p>`;
       html += `<p class="np-group">${groupName}</p>`;
 
-      if (first.song) {
-        html += `<p class="np-song">"${first.song}"</p>`;
+      const songs = parseSongs(first.song);
+      if (songs.length) {
+        html += `<p class="np-song">${songs.map(s => `"${s.song}" <span style="color:#8a7a60;">(${s.key || "Original Version"})</span>`).join("<br>")}</p>`;
       }
 
       html += `<div class="np-members">`;
@@ -141,11 +142,24 @@
         const nextMembers = queue.filter(p => p.position === nextPos);
         const nextFirst = nextMembers[0];
         const nextName = nextFirst.group_name || nextMembers.map(m => m.name).join(", ");
+        const nextSongs = parseSongs(nextFirst.song);
+        const nextSongLabel = nextSongs.length ? ' — "' + nextSongs[0].song + '"' : '';
         html += `<p class="np-next-label">▸ NEXT UP</p>`;
-        html += `<p class="np-next">${nextName}${nextFirst.song ? ' — "' + nextFirst.song + '"' : ''}</p>`;
+        html += `<p class="np-next">${nextName}${nextSongLabel}</p>`;
       }
 
       container.innerHTML = html;
+    }
+
+    function parseSongs(songStr) {
+      if (!songStr) return [];
+      try {
+        const parsed = JSON.parse(songStr);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => typeof item === "string" ? { song: item, key: "Original Version" } : item);
+        }
+      } catch(e) {}
+      return [{ song: songStr, key: "Original Version" }];
     }
 
     // Initial load

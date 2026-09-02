@@ -216,7 +216,7 @@
     async function submitIndividual() {
       const name = document.getElementById("ind-name").value.trim();
       const instrument = document.querySelector('input[name="ind-instrument"]:checked')?.value;
-      const song = getSongValue("ind-song");
+      const songObj = getSongObject("ind-song");
 
       if (!name && !instrument) { alert(t("alertNameInstrument")); return; }
       if (!name) { alert(t("alertName")); return; }
@@ -225,25 +225,26 @@
       const res = await fetch("/api/register/individual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, instrument, song })
+        body: JSON.stringify({ name, instrument, songObj })
       });
       const data = await res.json();
       if (data.success) {
-        showConfirmation(`${name} (${instrument})${song ? ' \u2014 "' + song + '"' : ''} \u2014 #${data.position}`);
+        const songLabel = songObj ? ` \u2014 "${songObj.song}" (${songObj.key})` : "";
+        showConfirmation(`${name} (${instrument})${songLabel} \u2014 #${data.position}`);
       }
     }
 
     async function submitGroup() {
       const groupName = document.getElementById("group-name").value.trim();
 
-      // Collect songs
-      const songs = [];
+      // Collect songs with keys
+      const songObjs = [];
       for (let i = 1; i <= groupSongCount; i++) {
-        const val = getSongValue("group-song-" + i);
-        if (val) songs.push(val);
+        const obj = getSongObject("group-song-" + i);
+        if (obj) songObjs.push(obj);
       }
 
-      if (songs.length > 0 && songs.length < 2) {
+      if (songObjs.length > 0 && songObjs.length < 2) {
         alert(getLang() === "es" ? "Los grupos deben elegir entre 2 y 4 canciones." : "Groups must choose between 2 and 4 songs.");
         return;
       }
@@ -270,7 +271,7 @@
       const res = await fetch("/api/register/group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupName, members, songs })
+        body: JSON.stringify({ groupName, members, songObjs })
       });
       const data = await res.json();
       if (data.success) {

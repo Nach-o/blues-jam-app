@@ -14,6 +14,9 @@
     .btn-join:hover { background: #3a7a3a !important; }
     .btn-songs { background: #4a3a10 !important; color: #d4a647 !important; font-size: 0.75rem !important; padding: 0.25rem 0.5rem !important; }
     .btn-songs:hover { background: #5a4a20 !important; }
+    .btn-edit { background: #2a2520 !important; font-size: 0.7rem !important; padding: 0.2rem 0.4rem !important; }
+    .btn-edit:hover { background: #3a3025 !important; }
+    .edit-song-row input { width: 100%; padding: 0.4rem; font-size: 0.85rem; }
     .songs-popup { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .songs-popup-box { background: linear-gradient(145deg, #1a1510, #12100d); border: 1px solid #2a2015; border-radius: 12px; padding: 1.5rem; max-width: 400px; width: 90%; }
     .songs-popup-box h3 { color: #d4a647; font-family: 'Playfair Display', serif; margin-bottom: 0.8rem; }
@@ -35,12 +38,13 @@
           <th data-i18n="colName">Nombre</th>
           <th data-i18n="colInstrument">Instrumento</th>
           <th data-i18n="colSong">Canción</th>
+          <th data-i18n="colKey">Tono</th>
           <th data-i18n="colJoined">Hora</th>
           <th data-i18n="colType">Tipo</th>
         </tr>
       </thead>
       <tbody id="queue-body">
-        <tr><td colspan="6" class="center" data-i18n="noOneYet">Nadie se ha apuntado aún. ¡Sé el primero!</td></tr>
+        <tr><td colspan="7" class="center" data-i18n="noOneYet">Nadie se ha apuntado aún. ¡Sé el primero!</td></tr>
       </tbody>
     </table>
   </div>
@@ -94,7 +98,7 @@
     function renderQueue(queue) {
       queueData = queue;
       if (!queue.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="center">${t("noOneYet")}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="center">${t("noOneYet")}</td></tr>`;
         return;
       }
 
@@ -156,12 +160,19 @@
             </div>`;
         }
 
+        // Song cell + edit button for waiting entries
+        let songCell = formatSongCell(first.song, first.position);
+        if (isWaiting) {
+          songCell += ` <button class="small btn-edit" onclick="openEditSongs(${first.position})" title="${t('editSong')}">✏️</button>`;
+        }
+
         return `
           <tr class="${rowClass}">
             <td>${first.position}</td>
             <td>${nameCell}</td>
             <td>${instrCell}</td>
-            <td>${formatSongCell(first.song, first.position)}</td>
+            <td>${songCell}</td>
+            <td>${formatKeyCell(first.song)}</td>
             <td>${joinedTime}</td>
             <td>${typeCell}</td>
           </tr>`;
@@ -170,22 +181,36 @@
 
     function esc(str) { return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
 
+    // Returns array of {song, key} objects
     function parseSongs(songStr) {
       if (!songStr) return [];
       try {
         const parsed = JSON.parse(songStr);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map(item =>
+            typeof item === "string" ? { song: item, key: "Original Version" } : item
+          );
+        }
       } catch(e) {}
-      // Single song string
-      return [songStr];
+      // Legacy single song string
+      return [{ song: songStr, key: "Original Version" }];
     }
 
     function formatSongCell(songStr, position) {
       const songs = parseSongs(songStr);
       if (!songs.length) return "\u2014";
-      if (songs.length === 1) return songs[0];
+      if (songs.length === 1) return songs[0].song;
       // Multiple songs — show count + button
       return `<button class="small btn-songs" onclick="showSongsPopup(${position})">\u266b ${songs.length} songs</button>`;
+    }
+
+    // Show distinct key(s): if all keys same, show one; otherwise comma-separated
+    function formatKeyCell(songStr) {
+      const songs = parseSongs(songStr);
+      if (!songs.length) return "\u2014";
+      const keys = songs.map(s => s.key || "Original Version");
+      const distinct = [...new Set(keys)];
+      return distinct.length === 1 ? distinct[0] : distinct.join(", ");
     }
 
     // Store songs data for popup
@@ -203,7 +228,7 @@
       popup.innerHTML = `
         <div class="songs-popup-box">
           <h3>\u266b ${name}</h3>
-          <ol>${songs.map(s => `<li>${s}</li>`).join("")}</ol>
+          <ol>${songs.map(s => `<li>${s.song} <span style="color:#8a7a60;">(${s.key || "Original Version"})</span></li>`).join("")}</ol>
           <div class="center mt-1"><button class="small" onclick="this.closest('.songs-popup').remove()">OK</button></div>
         </div>
       `;
@@ -241,6 +266,84 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, instrument })
       });
+    }
+
+    // --- Edit songs ---
+    function openEditSongs(position) {
+      const members = queueData.filter(p => p.position === position);
+      if (!members.length) return;
+      const isGroup = members.length > 1 || members[0].group_name;
+      const songs = parseSongs(members[0].song);
+      const name = members[0].group_name || members[0].name;
+
+      // Build rows: song text + key input
+      const rowsHtml = [];
+      const numRows = isGroup ? Math.max(2, songs.length) : 1;
+      for (let i = 0; i < numRows; i++) {
+        const s = songs[i] || { song: "", key: "Original Version" };
+        rowsHtml.push(`
+          <div class="edit-song-row" style="margin-bottom:0.5rem;">
+            <input type="text" class="edit-song-name" placeholder="${t('songOptional')}" value="${(s.song || '').replace(/"/g,'&quot;')}" style="margin-bottom:0.2rem;">
+            <input type="text" class="edit-song-key" placeholder="${t('keyPlaceholder')}" value="${(s.key || 'Original Version').replace(/"/g,'&quot;')}">
+          </div>
+        `);
+      }
+
+      const popup = document.createElement("div");
+      popup.className = "songs-popup";
+      popup.id = "edit-popup";
+      popup.onclick = (e) => { if (e.target === popup) popup.remove(); };
+      popup.innerHTML = `
+        <div class="songs-popup-box">
+          <h3>✏️ ${name}</h3>
+          <div id="edit-songs-list">${rowsHtml.join("")}</div>
+          ${isGroup ? `<button class="small secondary" onclick="addEditSongRow()">+ ${t('addSong')}</button>` : ""}
+          <div class="center mt-1">
+            <button class="small" onclick="saveEditSongs(${position}, ${isGroup})">${t('save')}</button>
+            <button class="small secondary" onclick="this.closest('.songs-popup').remove()">${t('back')}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
+
+    function addEditSongRow() {
+      const list = document.getElementById("edit-songs-list");
+      if (list.querySelectorAll(".edit-song-row").length >= 4) return;
+      const div = document.createElement("div");
+      div.className = "edit-song-row";
+      div.style.marginBottom = "0.5rem";
+      div.innerHTML = `
+        <input type="text" class="edit-song-name" placeholder="${t('songOptional')}" style="margin-bottom:0.2rem;">
+        <input type="text" class="edit-song-key" placeholder="${t('keyPlaceholder')}" value="Original Version">
+      `;
+      list.appendChild(div);
+    }
+
+    async function saveEditSongs(position, isGroup) {
+      const rows = document.querySelectorAll("#edit-popup .edit-song-row");
+      const songObjs = [];
+      rows.forEach(row => {
+        const song = row.querySelector(".edit-song-name").value.trim();
+        let key = row.querySelector(".edit-song-key").value.trim();
+        if (!key) key = "Original Version";
+        if (song) songObjs.push({ song, key });
+      });
+
+      if (isGroup && songObjs.length === 1) {
+        alert(getLang() === "es" ? "Los grupos deben elegir entre 2 y 4 canciones." : "Groups must choose between 2 and 4 songs.");
+        return;
+      }
+
+      const res = await fetch(`/api/queue/${position}/songs`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songObjs })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error); return; }
+      document.getElementById("edit-popup")?.remove();
+      // SSE will refresh
     }
 
     // Initial load

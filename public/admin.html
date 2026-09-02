@@ -32,6 +32,7 @@
             <th>Name</th>
             <th>Instrument</th>
             <th>Song</th>
+            <th>Key</th>
             <th>Joined</th>
             <th>Actions</th>
           </tr>
@@ -136,7 +137,8 @@
             <td>${first.position}</td>
             <td>${nameCell}</td>
             <td>${instrCell}</td>
-            <td>${first.song || "\u2014"}</td>
+            <td>${formatSongCell(first.song)}</td>
+            <td>${formatKeyCell(first.song)}</td>
             <td>${joinedTime}</td>
             <td class="actions">
               <button class="small secondary" onclick="moveUp(${first.position})" ${isTop ? "disabled" : ""}>&#8593;</button>
@@ -153,6 +155,32 @@
     function formatTime(utcStr) {
       const d = new Date(utcStr + "Z");
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function parseSongs(songStr) {
+      if (!songStr) return [];
+      try {
+        const parsed = JSON.parse(songStr);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => typeof item === "string" ? { song: item, key: "Original Version" } : item);
+        }
+      } catch(e) {}
+      return [{ song: songStr, key: "Original Version" }];
+    }
+
+    function formatSongCell(songStr) {
+      const songs = parseSongs(songStr);
+      if (!songs.length) return "\u2014";
+      if (songs.length === 1) return songs[0].song;
+      return songs.map(s => s.song).join(", ");
+    }
+
+    function formatKeyCell(songStr) {
+      const songs = parseSongs(songStr);
+      if (!songs.length) return "\u2014";
+      const keys = songs.map(s => s.key || "Original Version");
+      const distinct = [...new Set(keys)];
+      return distinct.length === 1 ? distinct[0] : distinct.join(", ");
     }
 
     async function loadQueue() {

@@ -122,7 +122,28 @@ app.get("/api/stats", (req, res) => {
   const waiting = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'waiting'").get().cnt;
   const groups = db.prepare("SELECT COUNT(DISTINCT group_name) as cnt FROM participants WHERE group_name IS NOT NULL").get().cnt;
   const instruments = db.prepare("SELECT instrument, COUNT(*) as cnt FROM participants GROUP BY instrument ORDER BY cnt DESC").all();
-  const songs = db.prepare("SELECT song, COUNT(*) as cnt FROM participants WHERE song IS NOT NULL AND song != '' GROUP BY song ORDER BY cnt DESC LIMIT 10").all();
+
+  // Extract song titles from JSON song data and count them
+  const rawSongs = db.prepare("SELECT song FROM participants WHERE song IS NOT NULL AND song != ''").all();
+  const songCounts = {};
+  for (const row of rawSongs) {
+    let titles = [];
+    try {
+      const parsed = JSON.parse(row.song);
+      if (Array.isArray(parsed)) {
+        titles = parsed.map(item => typeof item === "string" ? item : item.song);
+      }
+    } catch (e) {
+      titles = [row.song];
+    }
+    for (const title of titles) {
+      songCounts[title] = (songCounts[title] || 0) + 1;
+    }
+  }
+  const songs = Object.entries(songCounts)
+    .map(([song, cnt]) => ({ song, cnt }))
+    .sort((a, b) => b.cnt - a.cnt)
+    .slice(0, 10);
 
   res.json({
     totalMusicians: total,
@@ -137,9 +158,20 @@ app.get("/api/stats", (req, res) => {
 
 // Register individual
 app.post("/api/register/individual", (req, res) => {
-  const { name, instrument, song } = req.body;
+  const { name, instrument, song, songObj } = req.body;
   if (!name || !instrument) {
     return res.status(400).json({ error: "Name and instrument required" });
+  }
+
+  // Normalize song into JSON array of {song, key}. Backward compat with plain `song`.
+  let songData = null;
+  let songTitle = null;
+  if (songObj && songObj.song) {
+    songData = JSON.stringify([{ song: songObj.song, key: songObj.key || "Original Version" }]);
+    songTitle = songObj.song;
+  } else if (song && song.trim() !== "") {
+    songData = JSON.stringify([{ song: song.trim(), key: "Original Version" }]);
+    songTitle = song.trim();
   }
 
   const maxPos = db
@@ -149,13 +181,13 @@ app.post("/api/register/individual", (req, res) => {
 
   db.prepare(
     "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
-  ).run(name, instrument, song || null, position);
+  ).run(name, instrument, songData, position);
 
   // --- Auto-grouping logic ---
   // If solo chose a song, try to join a waiting group that has the same song and needs this instrument
   let joinedBySong = false;
-  if (song && song.trim() !== "") {
-    joinedBySong = trySongMatchJoin(position, song.trim(), instrument);
+  if (songTitle) {
+    joinedBySong = trySongMatchJoin(position, songTitle, instrument);
   }
 
   // If not joined by song match, try forming a new group from solos
@@ -170,17 +202,26 @@ app.post("/api/register/individual", (req, res) => {
 
 // Register group
 app.post("/api/register/group", (req, res) => {
-  const { groupName, members, song, songs } = req.body;
+  const { groupName, members, song, songs, songObjs } = req.body;
   if (!groupName || !members || !members.length) {
     return res
       .status(400)
       .json({ error: "Group name and at least one member required" });
   }
 
-  // songs = array of up to 4 songs; song = single song (backward compat)
-  let songList = songs || [];
-  if (!songList.length && song) songList = [song];
-  songList = songList.filter((s) => s && s.trim() !== "").slice(0, 4);
+  // Normalize songs into array of {song, key}.
+  // songObjs = new format; songs = array of strings (legacy); song = single string (legacy)
+  let songList = [];
+  if (songObjs && songObjs.length) {
+    songList = songObjs
+      .filter((o) => o && o.song && o.song.trim() !== "")
+      .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }));
+  } else if (songs && songs.length) {
+    songList = songs.filter((s) => s && s.trim() !== "").map((s) => ({ song: s.trim(), key: "Original Version" }));
+  } else if (song && song.trim() !== "") {
+    songList = [{ song: song.trim(), key: "Original Version" }];
+  }
+  songList = songList.slice(0, 4);
 
   if (songList.length > 0 && songList.length < 2) {
     return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
@@ -318,6 +359,43 @@ app.patch("/api/queue/:position/status", requirePin, (req, res) => {
     status,
     position
   );
+
+  broadcastUpdate();
+  res.json({ success: true });
+});
+
+// Edit songs for a position (public — anyone can correct a mistake)
+app.patch("/api/queue/:position/songs", (req, res) => {
+  const position = parseInt(req.params.position);
+  const { songObjs } = req.body;
+
+  const members = db
+    .prepare("SELECT * FROM participants WHERE position = ? AND status = 'waiting'")
+    .all(position);
+
+  if (!members.length) {
+    return res.status(404).json({ error: "Position not found or already played" });
+  }
+
+  const isGroup = members.length > 1 || members[0].group_name;
+
+  // Normalize songs
+  let songList = (songObjs || [])
+    .filter((o) => o && o.song && o.song.trim() !== "")
+    .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }))
+    .slice(0, 4);
+
+  // Groups need 2-4 songs (or 0 to clear); solos need 0-1
+  if (isGroup && songList.length === 1) {
+    return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
+  }
+  if (!isGroup && songList.length > 1) {
+    songList = songList.slice(0, 1);
+  }
+
+  const songValue = songList.length ? JSON.stringify(songList) : null;
+
+  db.prepare("UPDATE participants SET song = ? WHERE position = ?").run(songValue, position);
 
   broadcastUpdate();
   res.json({ success: true });
@@ -472,11 +550,15 @@ function trySongMatchJoin(soloPosition, song, instrument) {
     const first = members[0];
     if (!first.song) continue;
 
-    // Check if songs match (handle JSON arrays for groups)
+    // Check if songs match (song data is JSON array of {song, key} objects)
     let groupSongs = [];
     try {
       const parsed = JSON.parse(first.song);
-      if (Array.isArray(parsed)) groupSongs = parsed.map(s => s.toLowerCase());
+      if (Array.isArray(parsed)) {
+        groupSongs = parsed.map(item =>
+          (typeof item === "string" ? item : item.song).toLowerCase()
+        );
+      }
     } catch (e) {
       groupSongs = [first.song.toLowerCase()];
     }
