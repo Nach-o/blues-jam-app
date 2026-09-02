@@ -56,6 +56,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="songs.js"></script>
   <script>
     const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
     const REQUIRED = ["Guitar", "Bass", "Drums"];
@@ -269,24 +270,23 @@
     }
 
     // --- Edit songs ---
+    let editRowCount = 0;
+    let editIsGroup = false;
+
     function openEditSongs(position) {
       const members = queueData.filter(p => p.position === position);
       if (!members.length) return;
-      const isGroup = members.length > 1 || members[0].group_name;
+      editIsGroup = members.length > 1 || !!members[0].group_name;
       const songs = parseSongs(members[0].song);
       const name = members[0].group_name || members[0].name;
 
-      // Build rows: song text + key input
+      const numRows = editIsGroup ? Math.max(2, songs.length) : 1;
+      editRowCount = numRows;
+
+      // Placeholder divs that buildSongSelector will replace
       const rowsHtml = [];
-      const numRows = isGroup ? Math.max(2, songs.length) : 1;
       for (let i = 0; i < numRows; i++) {
-        const s = songs[i] || { song: "", key: "Original Version" };
-        rowsHtml.push(`
-          <div class="edit-song-row" style="margin-bottom:0.5rem;">
-            <input type="text" class="edit-song-name" placeholder="${t('songOptional')}" value="${(s.song || '').replace(/"/g,'&quot;')}" style="margin-bottom:0.2rem;">
-            <input type="text" class="edit-song-key" placeholder="${t('keyPlaceholder')}" value="${(s.key || 'Original Version').replace(/"/g,'&quot;')}">
-          </div>
-        `);
+        rowsHtml.push(`<div class="mt-1"><input type="text" id="edit-song-${i}"></div>`);
       }
 
       const popup = document.createElement("div");
@@ -297,40 +297,44 @@
         <div class="songs-popup-box">
           <h3>✏️ ${name}</h3>
           <div id="edit-songs-list">${rowsHtml.join("")}</div>
-          ${isGroup ? `<button class="small secondary" onclick="addEditSongRow()">+ ${t('addSong')}</button>` : ""}
+          ${editIsGroup ? `<button class="small secondary" id="edit-add-song-btn" onclick="addEditSongRow()">+ ${t('addSong')}</button>` : ""}
           <div class="center mt-1">
-            <button class="small" onclick="saveEditSongs(${position}, ${isGroup})">${t('save')}</button>
+            <button class="small" onclick="saveEditSongs(${position})">${t('save')}</button>
             <button class="small secondary" onclick="this.closest('.songs-popup').remove()">${t('back')}</button>
           </div>
         </div>
       `;
       document.body.appendChild(popup);
+
+      // Build dropdown selectors pre-filled with the current songs
+      for (let i = 0; i < numRows; i++) {
+        const s = songs[i] || { song: "", key: "Original Version" };
+        buildSongSelector("edit-song-" + i, s.song || "", s.key || "Original Version");
+      }
     }
 
     function addEditSongRow() {
+      if (editRowCount >= 4) return;
       const list = document.getElementById("edit-songs-list");
-      if (list.querySelectorAll(".edit-song-row").length >= 4) return;
       const div = document.createElement("div");
-      div.className = "edit-song-row";
-      div.style.marginBottom = "0.5rem";
-      div.innerHTML = `
-        <input type="text" class="edit-song-name" placeholder="${t('songOptional')}" style="margin-bottom:0.2rem;">
-        <input type="text" class="edit-song-key" placeholder="${t('keyPlaceholder')}" value="Original Version">
-      `;
+      div.className = "mt-1";
+      div.innerHTML = `<input type="text" id="edit-song-${editRowCount}">`;
       list.appendChild(div);
+      buildSongSelector("edit-song-" + editRowCount, "", "Original Version");
+      editRowCount++;
+      if (editRowCount >= 4) {
+        document.getElementById("edit-add-song-btn").style.display = "none";
+      }
     }
 
-    async function saveEditSongs(position, isGroup) {
-      const rows = document.querySelectorAll("#edit-popup .edit-song-row");
+    async function saveEditSongs(position) {
       const songObjs = [];
-      rows.forEach(row => {
-        const song = row.querySelector(".edit-song-name").value.trim();
-        let key = row.querySelector(".edit-song-key").value.trim();
-        if (!key) key = "Original Version";
-        if (song) songObjs.push({ song, key });
-      });
+      for (let i = 0; i < editRowCount; i++) {
+        const obj = getSongObject("edit-song-" + i);
+        if (obj) songObjs.push(obj);
+      }
 
-      if (isGroup && songObjs.length === 1) {
+      if (editIsGroup && songObjs.length === 1) {
         alert(getLang() === "es" ? "Los grupos deben elegir entre 2 y 4 canciones." : "Groups must choose between 2 and 4 songs.");
         return;
       }

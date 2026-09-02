@@ -48,10 +48,11 @@ const PLAYLIST_SONGS = [
 ];
 
 /**
- * Build a song selector: a <select> dropdown + a hidden custom text input.
+ * Build a song selector: a <select> dropdown + a hidden custom text input + key input.
  * Replaces the existing <input> element with the combo.
+ * Optionally pre-fills a song and key (used when editing).
  */
-function buildSongSelector(inputId) {
+function buildSongSelector(inputId, prefillSong, prefillKey) {
   const oldInput = document.getElementById(inputId);
   if (!oldInput) return;
 
@@ -94,7 +95,7 @@ function buildSongSelector(inputId) {
   const keyInput = document.createElement("input");
   keyInput.type = "text";
   keyInput.id = inputId + "-key";
-  keyInput.value = "Original Version";
+  keyInput.value = prefillKey || "Original Version";
   keyInput.placeholder = getLang() === "es" ? "Tono (ej. A, Em...)" : "Key (e.g. A, Em...)";
   keyInput.style.display = "none";
   keyInput.style.marginTop = "0.4rem";
@@ -122,6 +123,19 @@ function buildSongSelector(inputId) {
   wrapper.appendChild(select);
   wrapper.appendChild(customInput);
   wrapper.appendChild(keyInput);
+
+  // Pre-fill an existing song (used when editing)
+  if (prefillSong) {
+    if (PLAYLIST_SONGS.includes(prefillSong)) {
+      select.value = prefillSong;
+    } else {
+      // Not in the playlist — use custom option
+      select.value = "__custom__";
+      customInput.style.display = "block";
+      customInput.value = prefillSong;
+    }
+    updateKeyVisibility();
+  }
 
   // Replace the old input
   oldInput.parentNode.replaceChild(wrapper, oldInput);
