@@ -149,7 +149,7 @@ function getSongValue(inputId) {
   const customInput = document.getElementById(inputId + "-custom");
   if (!select) return "";
   if (select.value === "__custom__") {
-    return (customInput?.value || "").trim();
+    return ((customInput && customInput.value) || "").trim();
   }
   return select.value;
 }
@@ -162,7 +162,7 @@ function getSongObject(inputId) {
   const song = getSongValue(inputId);
   if (!song) return null;
   const keyInput = document.getElementById(inputId + "-key");
-  let key = (keyInput?.value || "").trim();
+  let key = ((keyInput && keyInput.value) || "").trim();
   if (!key) key = "Original Version";
   return { song, key };
 }

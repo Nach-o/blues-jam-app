@@ -346,14 +346,43 @@
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error); return; }
-      document.getElementById("edit-popup")?.remove();
+      var ep = document.getElementById("edit-popup");
+      if (ep) ep.remove();
       // SSE will refresh
     }
 
+    // --- Load queue with polling fallback (works on older browsers like Kindle Silk) ---
+    function loadQueueOnce() {
+      fetch("/api/queue")
+        .then(function(r) { return r.json(); })
+        .then(renderQueue)
+        .catch(function(err) {
+          console.error("Queue load failed:", err);
+        });
+    }
+
     // Initial load
-    fetch("/api/queue").then(r => r.json()).then(renderQueue);
-    const evtSource = new EventSource("/api/events");
-    evtSource.onmessage = (event) => { renderQueue(JSON.parse(event.data)); };
+    loadQueueOnce();
+
+    // Try live updates via Server-Sent Events (may not work on all browsers)
+    var sseWorking = false;
+    try {
+      if (typeof EventSource !== "undefined") {
+        var evtSource = new EventSource("/api/events");
+        evtSource.onmessage = function(event) {
+          sseWorking = true;
+          try { renderQueue(JSON.parse(event.data)); } catch (e) { loadQueueOnce(); }
+        };
+        evtSource.onerror = function() { sseWorking = false; };
+      }
+    } catch (e) {
+      sseWorking = false;
+    }
+
+    // Polling fallback: refresh every 5s if SSE isn't delivering updates
+    setInterval(function() {
+      if (!sseWorking) loadQueueOnce();
+    }, 5000);
   </script>
 </body>
 </html>
