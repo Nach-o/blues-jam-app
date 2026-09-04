@@ -98,6 +98,15 @@
 
     function renderQueue(queue) {
       queueData = queue;
+
+      // Don't re-render while the user is interacting with a form,
+      // otherwise their typing gets wiped out by the refresh.
+      var joinFormOpen = document.querySelector(".join-form.active");
+      var editPopupOpen = document.getElementById("edit-popup");
+      if (joinFormOpen || editPopupOpen) {
+        return;
+      }
+
       if (!queue.length) {
         tbody.innerHTML = `<tr><td colspan="7" class="center">${t("noOneYet")}</td></tr>`;
         return;
@@ -257,8 +266,12 @@
         body: JSON.stringify({ name, instrument })
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error); }
-      // SSE will update
+      if (!res.ok) { alert(data.error); return; }
+
+      // Close the form so the render guard no longer blocks, then refresh
+      var openForm = document.querySelector(".join-form.active");
+      if (openForm) openForm.classList.remove("active");
+      loadQueueOnce();
     }
 
     async function playAgain(name, instrument) {
