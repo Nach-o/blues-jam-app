@@ -99,11 +99,13 @@
     function renderQueue(queue) {
       queueData = queue;
 
-      // Don't re-render while the user is interacting with a form,
-      // otherwise their typing gets wiped out by the refresh.
-      var joinFormOpen = document.querySelector(".join-form.active");
+      // Don't re-render while the user is actively typing in a form,
+      // otherwise their input gets wiped out by the refresh.
+      var active = document.activeElement;
+      var typingInForm = active && (active.tagName === "INPUT" || active.tagName === "SELECT")
+        && (active.closest(".join-form") || active.closest("#edit-popup"));
       var editPopupOpen = document.getElementById("edit-popup");
-      if (joinFormOpen || editPopupOpen) {
+      if (typingInForm || editPopupOpen) {
         return;
       }
 
@@ -156,8 +158,8 @@
           typeCell += `<div class="play-again-row">${againBtns}</div>`;
         }
 
-        // Join button for waiting entries with a song that aren't complete yet
-        const showJoin = isWaiting && first.song && !isComplete(members);
+        // Join button for any waiting entry that isn't a complete band yet
+        const showJoin = isWaiting && !isComplete(members);
         if (showJoin) {
           const avail = availableInstruments(members);
           const opts = avail.map(key => `<option value="${t(key)}">${t(key)}</option>`).join("");
