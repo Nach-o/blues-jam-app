@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stats - Stardust Blues Jam</title>
+  <title data-mode-title=" — Stats">Stats - Stardust Blues Jam</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,6 +21,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
   <script>
     const content = document.getElementById("stats-content");
 
@@ -71,9 +72,16 @@
     // Initial load
     fetch("/api/stats").then(r => r.json()).then(renderStats);
 
+    // Sync jam mode for theme + branding
+    syncMode();
+
     // Refresh stats when queue changes
     const evtSource = new EventSource("/api/events");
-    evtSource.onmessage = () => {
+    evtSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (handleModeEvent(payload)) return;
+      } catch (e) {}
       fetch("/api/stats").then(r => r.json()).then(renderStats);
     };
   </script>

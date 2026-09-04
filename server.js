@@ -11,6 +11,9 @@ const ADMIN_PIN = process.env.ADMIN_PIN || "Admin123";
 // Solo time gate: when true, solo registration only on Thursdays 20:30 Spain time
 let soloTimeGateEnabled = true;
 
+// Jam mode: "blues" (default) or "jazz". Controls theming, branding and song list.
+let jamMode = "blues";
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -71,6 +74,22 @@ app.patch("/api/settings/solo-gate", requirePin, (req, res) => {
   soloTimeGateEnabled = !!enabled;
   console.log(`Solo time gate ${soloTimeGateEnabled ? "enabled" : "disabled"} by admin`);
   res.json({ success: true, enabled: soloTimeGateEnabled });
+});
+
+// Get jam mode (public — every page reads this to theme/brand itself)
+app.get("/api/settings/mode", (req, res) => {
+  res.json({ mode: jamMode });
+});
+
+// Set jam mode (admin only)
+app.patch("/api/settings/mode", requirePin, (req, res) => {
+  const mode = req.body && req.body.mode === "jazz" ? "jazz" : "blues";
+  jamMode = mode;
+  console.log(`Jam mode set to "${jamMode}" by admin`);
+  // Notify all connected clients so they re-theme immediately
+  const data = JSON.stringify({ type: "mode", mode: jamMode });
+  sseClients.forEach((r) => r.write(`data: ${data}\n\n`));
+  res.json({ success: true, mode: jamMode });
 });
 
 // --- Public endpoints ---

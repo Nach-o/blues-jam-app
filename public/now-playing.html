@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Now Playing - Stardust Blues Jam</title>
+  <title data-mode-title=" — Now Playing">Now Playing - Stardust Blues Jam</title>
   <link rel="stylesheet" href="style.css">
   <style>
     body {
@@ -87,6 +87,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
   <script>
     const container = document.getElementById("np-container");
 
@@ -165,10 +166,15 @@
     // Initial load
     fetch("/api/queue").then(r => r.json()).then(renderNowPlaying);
 
+    // Sync jam mode for theme + branding
+    syncMode();
+
     // Live updates
     const evtSource = new EventSource("/api/events");
     evtSource.onmessage = (event) => {
-      renderNowPlaying(JSON.parse(event.data));
+      const payload = JSON.parse(event.data);
+      if (handleModeEvent(payload)) return;
+      if (Array.isArray(payload)) renderNowPlaying(payload);
     };
   </script>
 </body>

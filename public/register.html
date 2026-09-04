@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Join the Jam</title>
+  <title data-mode-title=" — Join">Join the Jam</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -90,6 +90,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
   <script src="songs.js"></script>
   <script>
     const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
@@ -138,7 +139,42 @@
       buildSongSelector("ind-song");
       buildSongSelector("group-song-1");
       buildSongSelector("group-song-2");
+
+      // Sync the jam mode from the server; if it differs from the cached mode,
+      // rebuild the song selectors so they show the correct playlist.
+      syncMode(rebuildAllSongSelectors);
     });
+
+    // Rebuild every existing song selector (used when the mode changes so the
+    // dropdowns switch between the blues and jazz playlists).
+    function rebuildAllSongSelectors() {
+      // Solo selector
+      if (document.getElementById("ind-song-select")) {
+        const cur = getSongObject("ind-song");
+        replaceSelector("ind-song", cur);
+      }
+      // Group selectors
+      for (let i = 1; i <= groupSongCount; i++) {
+        if (document.getElementById("group-song-" + i + "-select")) {
+          const cur = getSongObject("group-song-" + i);
+          replaceSelector("group-song-" + i, cur);
+        }
+      }
+    }
+
+    // Replace a built selector (a .song-selector wrapper) with a fresh input
+    // placeholder, then rebuild it — optionally preserving the current song.
+    function replaceSelector(inputId, cur) {
+      const wrapper = document.getElementById(inputId + "-select");
+      if (!wrapper) return;
+      const container = wrapper.closest(".song-selector");
+      if (!container) return;
+      const placeholder = document.createElement("input");
+      placeholder.type = "text";
+      placeholder.id = inputId;
+      container.parentNode.replaceChild(placeholder, container);
+      buildSongSelector(inputId, cur ? cur.song : "", cur ? cur.key : "Original Version");
+    }
 
     function addGroupSong() {
       if (groupSongCount >= 4) return;

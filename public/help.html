@@ -151,6 +151,7 @@
     <button onclick="window.location.href='index.html'">Home</button>
   </div>
 
+  <script src="mode.js"></script>
   <script>
     function showLang(lang) {
       document.getElementById("help-en").classList.toggle("active", lang === "en");
@@ -158,6 +159,8 @@
       document.getElementById("btn-en").classList.toggle("secondary", lang !== "en");
       document.getElementById("btn-es").classList.toggle("secondary", lang !== "es");
     }
+    // Sync jam mode so the help page matches the current theme
+    syncMode();
   </script>
 </body>
 </html>

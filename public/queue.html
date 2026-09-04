@@ -56,6 +56,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
   <script src="songs.js"></script>
   <script>
     const INSTRUMENTS = ["vocals", "guitar", "bass", "drums", "keyboards", "harmonica", "other"];
@@ -379,6 +380,10 @@
     // Initial load
     loadQueueOnce();
 
+    // Sync jam mode (theme + branding); reload the queue on mode change so the
+    // song dropdowns inside any open edit popup would use the right playlist.
+    syncMode(function () { loadQueueOnce(); });
+
     // Try live updates via Server-Sent Events (may not work on all browsers)
     var sseWorking = false;
     try {
@@ -386,7 +391,12 @@
         var evtSource = new EventSource("/api/events");
         evtSource.onmessage = function(event) {
           sseWorking = true;
-          try { renderQueue(JSON.parse(event.data)); } catch (e) { loadQueueOnce(); }
+          try {
+            var payload = JSON.parse(event.data);
+            // Mode-change messages come over the same channel as an object.
+            if (handleModeEvent(payload, function () { loadQueueOnce(); })) return;
+            if (Array.isArray(payload)) renderQueue(payload);
+          } catch (e) { loadQueueOnce(); }
         };
         evtSource.onerror = function() { sseWorking = false; };
       }

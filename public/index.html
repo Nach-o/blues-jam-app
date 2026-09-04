@@ -3,14 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stardust Blues Jam</title>
+  <title data-mode-title="">Stardust Blues Jam</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="lang-switcher"></div>
 
-  <h1 data-i18n="title">Stardust Blues Jam</h1>
+  <h1 data-mode-brand>Stardust Blues Jam</h1>
   <p class="subtitle" id="next-thursday"></p>
+
+  <!-- Admin-only mode switch (hidden unless logged in as admin) -->
+  <div class="center hidden" id="mode-switch-wrap">
+    <div class="mode-switch">
+      <button id="mode-blues-btn" onclick="setJamMode('blues')">🎸 Blues</button>
+      <button id="mode-jazz-btn" onclick="setJamMode('jazz')">🎷 Jazz</button>
+    </div>
+  </div>
 
   <div class="container">
     <p class="center mb-1" data-i18n="scanPrompt">¡Escanea el código QR del local para unirte!</p>
@@ -32,13 +40,54 @@
   </div>
 
   <div class="center mt-1">
-    <a href="https://open.spotify.com/playlist/4QVsZ174uFZfdFxnzfJKTU?si=_xaO2J88TQWRBUIDeiEmVA" target="_blank" style="color:#1DB954; text-decoration:none; font-size:0.9rem;">&#127925; Spotify Playlist</a>
+    <a href="https://open.spotify.com/playlist/4QVsZ174uFZfdFxnzfJKTU" data-mode-spotify target="_blank" style="color:#1DB954; text-decoration:none; font-size:0.9rem;">&#127925; Spotify Playlist</a>
   </div>
 
   <div class="blues-quote" id="daily-quote"></div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
   <script>document.getElementById("next-thursday").textContent = getNextThursdayFormatted();</script>
+  <script>
+    // --- Admin-only mode switch ---
+    function isAdmin() {
+      return localStorage.getItem("blues-jam-admin") === "true";
+    }
+
+    function refreshModeButtons() {
+      const mode = getMode();
+      document.getElementById("mode-blues-btn").classList.toggle("active", mode === "blues");
+      document.getElementById("mode-jazz-btn").classList.toggle("active", mode === "jazz");
+    }
+
+    async function setJamMode(mode) {
+      const res = await fetch("/api/settings/mode", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Pin": localStorage.getItem("blues-jam-admin-pin") || ""
+        },
+        body: JSON.stringify({ mode })
+      });
+      if (!res.ok) {
+        alert("Only admins can change the jam mode.");
+        return;
+      }
+      localStorage.setItem("blues-jam-mode", mode);
+      applyMode();
+      refreshModeButtons();
+      renderQuote();
+    }
+
+    // Show the switch only to admins
+    if (isAdmin()) {
+      document.getElementById("mode-switch-wrap").classList.remove("hidden");
+    }
+
+    // Sync mode from server on load, then reflect it in the buttons + quote
+    syncMode(() => { refreshModeButtons(); renderQuote(); });
+    refreshModeButtons();
+  </script>
   <script>
     // Daily rotating blues quotes
     const bluesQuotes = [
@@ -68,9 +117,38 @@
       { text: "The beautiful thing about the blues is that it is healing.", author: "Shemekia Copeland" }
     ];
 
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-    const todayQuote = bluesQuotes[dayOfYear % bluesQuotes.length];
-    document.getElementById("daily-quote").innerHTML = `"${todayQuote.text}"<span class="author">&mdash; ${todayQuote.author}</span>`;
+    // Daily rotating jazz quotes (used in jazz mode)
+    const jazzQuotes = [
+      { text: "It's not the notes you play, it's the notes you don't play.", author: "Miles Davis" },
+      { text: "Life is a lot like jazz — it's best when you improvise.", author: "George Gershwin" },
+      { text: "Jazz is not just music, it's a way of life, a way of being.", author: "Nina Simone" },
+      { text: "You can't play anything on a modern horn that Louis hasn't already played.", author: "Miles Davis" },
+      { text: "There are no wrong notes in jazz: only notes in the wrong places.", author: "Miles Davis" },
+      { text: "Jazz washes away the dust of everyday life.", author: "Art Blakey" },
+      { text: "Do not fear mistakes. There are none.", author: "Miles Davis" },
+      { text: "The music is the space between the notes.", author: "Claude Debussy" },
+      { text: "Master your instrument, master the music, and then forget all that and just play.", author: "Charlie Parker" },
+      { text: "If you have to ask what jazz is, you'll never know.", author: "Louis Armstrong" },
+      { text: "Jazz stands for freedom.", author: "Dave Brubeck" },
+      { text: "My whole life is music. If I don't play, I don't feel good.", author: "Dizzy Gillespie" },
+      { text: "Don't play what's there, play what's not there.", author: "Miles Davis" },
+      { text: "Music is your own experience, your own thoughts, your wisdom.", author: "Charlie Parker" },
+      { text: "Jazz is the only music in which the same note can be played night after night but differently each time.", author: "Ornette Coleman" },
+      { text: "Simplicity is the final achievement.", author: "Frédéric Chopin" },
+      { text: "A genius is the one most like himself.", author: "Thelonious Monk" },
+      { text: "Play what you know and then play above that.", author: "John Coltrane" },
+      { text: "Wisdom is better than knowledge, and love is greater than wisdom.", author: "John Coltrane" },
+      { text: "I never practice my guitar — from time to time I just open the case and throw in a piece of raw meat.", author: "Wes Montgomery" }
+    ];
+
+    function renderQuote() {
+      const quotes = (typeof getMode === "function" && getMode() === "jazz") ? jazzQuotes : bluesQuotes;
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      const q = quotes[dayOfYear % quotes.length];
+      document.getElementById("daily-quote").innerHTML = `"${q.text}"<span class="author">&mdash; ${q.author}</span>`;
+    }
+
+    renderQuote();
   </script>
 </body>
 </html>

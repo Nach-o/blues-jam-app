@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stardust Blues Jam - Scan to Join</title>
+  <title data-mode-title=" — Scan to Join">Stardust Blues Jam - Scan to Join</title>
   <link rel="stylesheet" href="style.css">
   <style>
     #qr-canvas {
@@ -15,12 +15,14 @@
       border-radius: 8px;
       border: 4px solid #d4a647;
     }
+    body.theme-jazz #qr-canvas canvas { border-color: #4caf50; }
     .date-display {
       text-align: center;
       font-size: 1.1rem;
       color: #d4a647;
       margin-top: 0.5rem;
     }
+    body.theme-jazz .date-display { color: #5ec46a; }
   </style>
 </head>
 <body>
@@ -41,9 +43,13 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="mode.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>
+    // Sync jam mode for theme + branding
+    syncMode();
+
     // Generate a URL with today's date so the QR changes daily
     const today = new Date();
     const dateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -58,13 +64,14 @@
     // Display URL
     document.getElementById("qr-url").textContent = qrUrl;
 
-    // Generate QR
+    // Generate QR — accent color depends on the jam mode
+    const qrAccent = (typeof getModeMeta === "function") ? getModeMeta().accent : "#d4a647";
     new QRCode(document.getElementById("qr-canvas"), {
       text: qrUrl,
       width: 280,
       height: 280,
-      colorDark: "#d4a647",
-      colorLight: "#1a1510",
+      colorDark: qrAccent,
+      colorLight: (getMode && getMode() === "jazz") ? "#101a14" : "#1a1510",
       correctLevel: QRCode.CorrectLevel.M
     });
   </script>

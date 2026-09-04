@@ -1,6 +1,6 @@
 // Songs from the Stardust Blues Jam Spotify playlist
 // https://open.spotify.com/playlist/4QVsZ174uFZfdFxnzfJKTU
-const PLAYLIST_SONGS = [
+const BLUES_SONGS = [
   "Ain't No Sunshine - Bill Withers",
   "All Your Love - Gary Moore",
   "Back To Black - Amy Winehouse",
@@ -47,6 +47,122 @@ const PLAYLIST_SONGS = [
   "Your Heart Is As Black As Night - Beth Hart & Joe Bonamassa"
 ];
 
+// Songs from the Stardust Jazz Jam Spotify playlist
+// https://open.spotify.com/playlist/74kSBG21OQPQRl2Q6YATIX
+const JAZZ_SONGS = [
+  "A Foggy Day - Oscar Peterson",
+  "A Night In Tunisia - Dizzy Gillespie",
+  "All Blues - Miles Davis",
+  "All Of Me - Billie Holiday & Lester Young",
+  "All The Things You Are - Coleman Hawkins",
+  "Anthropology - Charlie Parker",
+  "Autumn Leaves - Stan Getz",
+  "Billie's Bounce - Charlie Parker",
+  "Blue Bossa - Dexter Gordon",
+  "Blue Train - John Coltrane",
+  "Blues For Alice - Charlie Parker",
+  "Body and Soul - Coleman Hawkins",
+  "C-Jam Blues - Dexter Gordon & Ben Webster",
+  "Caravan - John Wasson",
+  "Chelsea Bridge - Gerry Mulligan & Ben Webster",
+  "Cherokee - Wynton Marsalis",
+  "Confirmation - Charlie Parker",
+  "Darn That Dream - Sarah Vaughan",
+  "Days Of Wine And Roses - Frank Sinatra",
+  "Desafinado - Stan Getz & João Gilberto",
+  "Dolphin Dance - Herbie Hancock",
+  "Donna Lee - Charlie Parker",
+  "Don't Get Around Much Anymore - Tony Bennett & Michael Bublé",
+  "Doxy - Miles Davis & Sonny Rollins",
+  "E.S.P. - Miles Davis",
+  "Footprints - Wayne Shorter",
+  "Four - Miles Davis Quintet",
+  "Freddie Freeloader - Miles Davis",
+  "Freedom Jazz Dance - Miles Davis",
+  "Giant Steps - John Coltrane",
+  "Goodbye Pork Pie Hat - Charles Mingus",
+  "Have You Met Miss Jones? - Frank Sinatra",
+  "I Mean You - Thelonious Monk",
+  "I Thought About You - Miles Davis",
+  "If I Were A Bell - Miles Davis Quintet",
+  "Impressions - John Coltrane",
+  "In A Sentimental Mood - Duke Ellington & John Coltrane",
+  "In Walked Bud - Thelonious Monk",
+  "It Don't Mean a Thing - Louis Armstrong & Duke Ellington",
+  "Joy Spring - Clifford Brown",
+  "Just Friends - Charlie Parker",
+  "Killer Joe - Benny Golson",
+  "Lady Bird - Stan Getz",
+  "Light Blue - Thelonious Monk Quartet",
+  "Love For Sale - Cannonball Adderley",
+  "Lover Man - Billie Holiday",
+  "Lullaby Of Birdland - Ella Fitzgerald",
+  "Maiden Voyage - Herbie Hancock",
+  "Mercy, Mercy, Mercy - The Cannonball Adderley Quintet",
+  "Misty - Ella Fitzgerald",
+  "Moment's Notice - John Coltrane",
+  "Moritat - Sonny Rollins",
+  "Mr. P.C. - John Coltrane",
+  "My Favorite Things - John Coltrane",
+  "My Funny Valentine - Art Blakey & Wynton Marsalis",
+  "My Romance - Chet Baker & Red Mitchell",
+  "Naima - John Coltrane",
+  "Nostalgia In Times Square - Charles Mingus",
+  "Now's The Time - Charlie Parker",
+  "Oleo - Miles Davis & Sonny Rollins",
+  "On Green Dolphin Street - Miles Davis",
+  "On The Sunny Side Of The Street - Louis Armstrong",
+  "Ornithology - Charlie Parker",
+  "Pent-Up House - Sonny Rollins",
+  "Recorda Me - Joe Henderson",
+  "'Round Midnight - Miles Davis",
+  "Samba de Orpheus - Vince Guaraldi Trio",
+  "Satin Doll - McCoy Tyner",
+  "Scrapple From The Apple - Charlie Parker",
+  "Softly As In A Morning Sunrise - John Coltrane Quartet",
+  "Solar - Miles Davis Quintet",
+  "So What - Miles Davis",
+  "Some Other Blues - John Coltrane",
+  "Someday My Prince Will Come - Miles Davis",
+  "Song For My Father - Horace Silver",
+  "Sophisticated Lady - Duke Ellington",
+  "Speak No Evil - Wayne Shorter",
+  "St. Thomas - Sonny Rollins",
+  "Stella By Starlight - Miles Davis",
+  "Stolen Moments - Oliver Nelson",
+  "Stompin At The Savoy - Benny Goodman",
+  "Straight, No Chaser - Thelonious Monk",
+  "Sugar - Stanley Turrentine",
+  "Summertime - Sidney Bechet",
+  "Take Five - Dave Brubeck",
+  "Take the \"A\" Train - Duke Ellington",
+  "The Girl From Ipanema - Stan Getz",
+  "The Sidewinder - Lee Morgan",
+  "There Will Never Be Another You - Bud Powell",
+  "Tune Up - Miles Davis & John Coltrane",
+  "Up Jumped Spring - Freddie Hubbard",
+  "Waltz For Debby - Bill Evans",
+  "Watermelon Man - Herbie Hancock",
+  "Wave - Antônio Carlos Jobim",
+  "Well You Needn't - Miles Davis Quintet",
+  "What Is This Thing Called Love - Frank Sinatra",
+  "What's New - John Coltrane Quartet",
+  "When I Fall In Love - Nat King Cole"
+];
+
+/**
+ * The active playlist depends on the current jam mode.
+ * getMode() comes from mode.js — fall back to the blues list if it's absent.
+ */
+function getPlaylistSongs() {
+  try {
+    if (typeof getMode === "function" && getMode() === "jazz") {
+      return JAZZ_SONGS;
+    }
+  } catch (e) {}
+  return BLUES_SONGS;
+}
+
 /**
  * Build a song selector: a <select> dropdown + a hidden custom text input + key input.
  * Replaces the existing <input> element with the combo.
@@ -69,8 +185,8 @@ function buildSongSelector(inputId, prefillSong, prefillKey) {
   optNone.textContent = t("songOptional");
   select.appendChild(optNone);
 
-  // Playlist songs
-  PLAYLIST_SONGS.forEach(song => {
+  // Playlist songs (blues or jazz depending on current mode)
+  getPlaylistSongs().forEach(song => {
     const opt = document.createElement("option");
     opt.value = song;
     opt.textContent = song;
@@ -126,7 +242,7 @@ function buildSongSelector(inputId, prefillSong, prefillKey) {
 
   // Pre-fill an existing song (used when editing)
   if (prefillSong) {
-    if (PLAYLIST_SONGS.includes(prefillSong)) {
+    if (getPlaylistSongs().includes(prefillSong)) {
       select.value = prefillSong;
     } else {
       // Not in the playlist — use custom option

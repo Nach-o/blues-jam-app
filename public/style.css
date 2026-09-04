@@ -482,3 +482,161 @@ tr.row-next td { color: #7cdf7c; font-weight: 600; }
   h1 { font-size: 3.2rem; }
   th, td { padding: 1.1rem 1.4rem; font-size: 1.2rem; }
 }
+
+/* ==========================================================
+   JAZZ MODE THEME (green accent)
+   Applied when <body> has the .theme-jazz class (see mode.js).
+   Remaps the gold accent (#d4a647) to a jazz green while keeping
+   the dark, smoky stage aesthetic.
+   ========================================================== */
+
+/* Background: swap the warm gold/purple spotlights for cool greens */
+body.theme-jazz {
+  background-image:
+    radial-gradient(ellipse at 15% 20%, rgba(76, 175, 80, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 30%, rgba(30, 120, 80, 0.07) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 60%, rgba(20, 50, 30, 0.15) 0%, transparent 55%),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0px, transparent 40px, rgba(18, 30, 22, 0.3) 41px, transparent 42px),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #080d0a 0%, #101a14 40%, #080d0a 100%);
+  color: #dceadf;
+}
+
+body.theme-jazz::before {
+  background:
+    radial-gradient(ellipse at 30% 70%, rgba(40, 100, 60, 0.06) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 20%, rgba(30, 80, 60, 0.05) 0%, transparent 35%);
+}
+
+body.theme-jazz::after {
+  background:
+    radial-gradient(ellipse at 60% 80%, rgba(76, 175, 80, 0.04) 0%, transparent 30%),
+    radial-gradient(ellipse at 20% 30%, rgba(40, 130, 90, 0.04) 0%, transparent 40%);
+}
+
+/* Headings + accents */
+body.theme-jazz h1 {
+  color: #5ec46a;
+  text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3), 0 0 40px rgba(76, 175, 80, 0.1);
+  animation: jazz-title-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes jazz-title-glow {
+  0% { text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3), 0 0 40px rgba(76, 175, 80, 0.05); }
+  100% { text-shadow: 0 2px 15px rgba(76, 175, 80, 0.5), 0 0 60px rgba(76, 175, 80, 0.1); }
+}
+
+body.theme-jazz h2,
+body.theme-jazz h3 { color: #5ec46a; }
+
+body.theme-jazz .subtitle { color: #7ba888; }
+
+/* Containers / panels */
+body.theme-jazz .container {
+  background: linear-gradient(145deg, #101a14, #0c130f);
+  border: 1px solid #1d2a21;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(76,175,80,0.08),
+    0 0 60px rgba(76,175,80,0.02);
+}
+
+body.theme-jazz .demand-panel,
+body.theme-jazz .pin-box,
+body.theme-jazz .songs-popup-box,
+body.theme-jazz .stat-card {
+  background: linear-gradient(145deg, #101a14, #0c130f);
+  border: 1px solid #1d2a21;
+}
+
+/* Buttons */
+body.theme-jazz button { background: #4caf50; color: #0c130f; }
+body.theme-jazz button:hover { background: #5ec46a; }
+body.theme-jazz button.secondary { background: #1a251e; color: #5ec46a; border: 1px solid #2a3a30; }
+body.theme-jazz button.secondary:hover { background: #2a3a30; }
+/* danger stays red in both themes */
+
+/* Inputs */
+body.theme-jazz input,
+body.theme-jazz select {
+  border: 1px solid #2a3a30;
+  background: #101a14;
+  color: #dceadf;
+}
+body.theme-jazz input::placeholder { color: #5a7565; }
+body.theme-jazz input:focus,
+body.theme-jazz select:focus { border-color: #4caf50; box-shadow: 0 0 8px rgba(76,175,80,0.2); }
+
+body.theme-jazz .instrument-grid label { background: #101a14; border: 1px solid #1d2a21; }
+body.theme-jazz .instrument-grid label:hover { border-color: #4caf50; background: #12211a; }
+body.theme-jazz .instrument-grid input[type="radio"],
+body.theme-jazz .instrument-grid input[type="checkbox"] { accent-color: #4caf50; }
+
+/* Tables */
+body.theme-jazz th { background: #101a14; color: #5ec46a; }
+body.theme-jazz tr:nth-child(even) { background: rgba(29, 42, 33, 0.3); }
+body.theme-jazz th, body.theme-jazz td { border-bottom: 1px solid #1d2a21; }
+
+/* Badges */
+body.theme-jazz .badge { background: #4caf50; color: #0c130f; }
+body.theme-jazz .stat-card .stat-value { color: #5ec46a; }
+
+/* Quote footer */
+body.theme-jazz .blues-quote { color: #5a7565; }
+body.theme-jazz .blues-quote .author { color: #5ec46a; }
+
+/* Language switcher active state */
+body.theme-jazz .lang-btn.active-lang {
+  background: #4caf50 !important;
+  color: #0c130f !important;
+  border-color: #4caf50 !important;
+}
+
+/* Now playing (green group name) */
+body.theme-jazz .np-group {
+  color: #5ec46a;
+  text-shadow: 0 2px 20px rgba(76, 175, 80, 0.4);
+  animation: jazz-title-glow 4s ease-in-out infinite alternate;
+}
+body.theme-jazz .np-member-instrument { color: #5ec46a; }
+
+/* Mode toggle control (home page) */
+.mode-switch {
+  display: inline-flex;
+  border: 1px solid #3a3025;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 0.25rem;
+}
+.mode-switch button {
+  margin: 0;
+  border-radius: 0;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.9rem;
+  background: #2a2520;
+  color: #aaa;
+}
+.mode-switch button.active { background: #d4a647; color: #1a1510; }
+body.theme-jazz .mode-switch { border-color: #2a3a30; }
+body.theme-jazz .mode-switch button { background: #1a251e; color: #7ba888; }
+body.theme-jazz .mode-switch button.active { background: #4caf50; color: #0c130f; }
+
+/* Admin logged-in notice (injected on every page by mode.js) */
+.admin-notice {
+  width: 100%;
+  text-align: center;
+  background: #2a3a1a;
+  color: #7cdf7c;
+  border-bottom: 1px solid #3a5a2a;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  position: relative;
+  z-index: 5;
+  margin-bottom: 0.5rem;
+}
+body.theme-jazz .admin-notice {
+  background: #16281c;
+  color: #7fe08f;
+  border-bottom: 1px solid #2a5a3a;
+}
