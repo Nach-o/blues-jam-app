@@ -17,13 +17,19 @@ let jamMode = "blues";
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Wrap async route handlers so rejected promises become 500s instead of
+// crashing the process with an unhandled rejection.
+function wrap(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
+
 // --- SSE ---
 let sseClients = [];
 
-function broadcastUpdate() {
-  const queue = db
-    .prepare("SELECT * FROM participants ORDER BY position ASC, id ASC")
-    .all();
+async function broadcastUpdate() {
+  const queue = await db.all(
+    "SELECT * FROM participants ORDER BY position ASC, id ASC"
+  );
   const data = JSON.stringify(queue);
   sseClients.forEach((res) => res.write(`data: ${data}\n\n`));
 }
@@ -95,411 +101,452 @@ app.patch("/api/settings/mode", requirePin, (req, res) => {
 // --- Public endpoints ---
 
 // Get queue
-app.get("/api/queue", (req, res) => {
-  const queue = db
-    .prepare("SELECT * FROM participants ORDER BY position ASC, id ASC")
-    .all();
-  res.json(queue);
-});
+app.get(
+  "/api/queue",
+  wrap(async (req, res) => {
+    const queue = await db.all(
+      "SELECT * FROM participants ORDER BY position ASC, id ASC"
+    );
+    res.json(queue);
+  })
+);
 
 // Get instrument demand — what's needed based on who has joined tonight
-app.get("/api/demand", (req, res) => {
-  const solos = db
-    .prepare(
+app.get(
+  "/api/demand",
+  wrap(async (req, res) => {
+    const solos = await db.all(
       "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
-    )
-    .all();
+    );
 
-  const instrumentCounts = {};
-  for (const s of solos) {
-    const instr = normalizeInstrument(s.instrument);
-    instrumentCounts[instr] = (instrumentCounts[instr] || 0) + 1;
-  }
-
-  // Mark ALL instruments that no solo has signed up with as needed
-  const ALL_INSTRUMENTS = ["Guitar", "Bass", "Drums", "Vocals", "Keyboards", "Harmonica"];
-  const needed = [];
-  for (const instr of ALL_INSTRUMENTS) {
-    if (!instrumentCounts[instr] || instrumentCounts[instr] < 1) {
-      needed.push(instr);
+    const instrumentCounts = {};
+    for (const s of solos) {
+      const instr = normalizeInstrument(s.instrument);
+      instrumentCounts[instr] = (instrumentCounts[instr] || 0) + 1;
     }
-  }
 
-  res.json({
-    waitingSolos: solos.length,
-    instrumentCounts,
-    needed,
-    readyToMerge: needed.length === 0
-  });
-});
+    // Mark ALL instruments that no solo has signed up with as needed
+    const ALL_INSTRUMENTS = ["Guitar", "Bass", "Drums", "Vocals", "Keyboards", "Harmonica"];
+    const needed = [];
+    for (const instr of ALL_INSTRUMENTS) {
+      if (!instrumentCounts[instr] || instrumentCounts[instr] < 1) {
+        needed.push(instr);
+      }
+    }
+
+    res.json({
+      waitingSolos: solos.length,
+      instrumentCounts,
+      needed,
+      readyToMerge: needed.length === 0,
+    });
+  })
+);
 
 // Get stats for end-of-night summary
-app.get("/api/stats", (req, res) => {
-  const total = db.prepare("SELECT COUNT(*) as cnt FROM participants").get().cnt;
-  const played = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'played'").get().cnt;
-  const missing = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'missing'").get().cnt;
-  const waiting = db.prepare("SELECT COUNT(DISTINCT position) as cnt FROM participants WHERE status = 'waiting'").get().cnt;
-  const groups = db.prepare("SELECT COUNT(DISTINCT group_name) as cnt FROM participants WHERE group_name IS NOT NULL").get().cnt;
-  const instruments = db.prepare("SELECT instrument, COUNT(*) as cnt FROM participants GROUP BY instrument ORDER BY cnt DESC").all();
+app.get(
+  "/api/stats",
+  wrap(async (req, res) => {
+    const total = (await db.one("SELECT COUNT(*)::int as cnt FROM participants")).cnt;
+    const played = (await db.one("SELECT COUNT(DISTINCT position)::int as cnt FROM participants WHERE status = 'played'")).cnt;
+    const missing = (await db.one("SELECT COUNT(DISTINCT position)::int as cnt FROM participants WHERE status = 'missing'")).cnt;
+    const waiting = (await db.one("SELECT COUNT(DISTINCT position)::int as cnt FROM participants WHERE status = 'waiting'")).cnt;
+    const groups = (await db.one("SELECT COUNT(DISTINCT group_name)::int as cnt FROM participants WHERE group_name IS NOT NULL")).cnt;
+    const instruments = await db.all(
+      "SELECT instrument, COUNT(*)::int as cnt FROM participants GROUP BY instrument ORDER BY cnt DESC"
+    );
 
-  // Extract song titles from JSON song data and count them
-  const rawSongs = db.prepare("SELECT song FROM participants WHERE song IS NOT NULL AND song != ''").all();
-  const songCounts = {};
-  for (const row of rawSongs) {
-    let titles = [];
-    try {
-      const parsed = JSON.parse(row.song);
-      if (Array.isArray(parsed)) {
-        titles = parsed.map(item => typeof item === "string" ? item : item.song);
+    // Extract song titles from JSON song data and count them
+    const rawSongs = await db.all(
+      "SELECT song FROM participants WHERE song IS NOT NULL AND song != ''"
+    );
+    const songCounts = {};
+    for (const row of rawSongs) {
+      let titles = [];
+      try {
+        const parsed = JSON.parse(row.song);
+        if (Array.isArray(parsed)) {
+          titles = parsed.map((item) => (typeof item === "string" ? item : item.song));
+        }
+      } catch (e) {
+        titles = [row.song];
       }
-    } catch (e) {
-      titles = [row.song];
+      for (const title of titles) {
+        songCounts[title] = (songCounts[title] || 0) + 1;
+      }
     }
-    for (const title of titles) {
-      songCounts[title] = (songCounts[title] || 0) + 1;
-    }
-  }
-  const songs = Object.entries(songCounts)
-    .map(([song, cnt]) => ({ song, cnt }))
-    .sort((a, b) => b.cnt - a.cnt)
-    .slice(0, 10);
+    const songs = Object.entries(songCounts)
+      .map(([song, cnt]) => ({ song, cnt }))
+      .sort((a, b) => b.cnt - a.cnt)
+      .slice(0, 10);
 
-  res.json({
-    totalMusicians: total,
-    groupsFormed: groups,
-    played,
-    missing,
-    waiting,
-    instruments,
-    topSongs: songs
-  });
-});
+    res.json({
+      totalMusicians: total,
+      groupsFormed: groups,
+      played,
+      missing,
+      waiting,
+      instruments,
+      topSongs: songs,
+    });
+  })
+);
 
 // Register individual
-app.post("/api/register/individual", (req, res) => {
-  const { name, instrument, song, songObj } = req.body;
-  if (!name || !instrument) {
-    return res.status(400).json({ error: "Name and instrument required" });
-  }
+app.post(
+  "/api/register/individual",
+  wrap(async (req, res) => {
+    const { name, instrument, song, songObj } = req.body;
+    if (!name || !instrument) {
+      return res.status(400).json({ error: "Name and instrument required" });
+    }
 
-  // Normalize song into JSON array of {song, key}. Backward compat with plain `song`.
-  let songData = null;
-  let songTitle = null;
-  if (songObj && songObj.song) {
-    songData = JSON.stringify([{ song: songObj.song, key: songObj.key || "Original Version" }]);
-    songTitle = songObj.song;
-  } else if (song && song.trim() !== "") {
-    songData = JSON.stringify([{ song: song.trim(), key: "Original Version" }]);
-    songTitle = song.trim();
-  }
+    // Normalize song into JSON array of {song, key}. Backward compat with plain `song`.
+    let songData = null;
+    let songTitle = null;
+    if (songObj && songObj.song) {
+      songData = JSON.stringify([{ song: songObj.song, key: songObj.key || "Original Version" }]);
+      songTitle = songObj.song;
+    } else if (song && song.trim() !== "") {
+      songData = JSON.stringify([{ song: song.trim(), key: "Original Version" }]);
+      songTitle = song.trim();
+    }
 
-  const maxPos = db
-    .prepare("SELECT COALESCE(MAX(position), 0) as max FROM participants")
-    .get();
-  const position = maxPos.max + 1;
+    const maxPos = await db.one(
+      "SELECT COALESCE(MAX(position), 0) as max FROM participants"
+    );
+    const position = maxPos.max + 1;
 
-  db.prepare(
-    "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
-  ).run(name, instrument, songData, position);
+    await db.run(
+      "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES ($1, $2, $3, 'individual', $4)",
+      [name, instrument, songData, position]
+    );
 
-  // --- Auto-grouping logic ---
-  // If solo chose a song, try to join a waiting group that has the same song and needs this instrument
-  let joinedBySong = false;
-  if (songTitle) {
-    joinedBySong = trySongMatchJoin(position, songTitle, instrument);
-  }
+    // --- Auto-grouping logic ---
+    // If solo chose a song, try to join a waiting group that has the same song and needs this instrument
+    let joinedBySong = false;
+    if (songTitle) {
+      joinedBySong = await trySongMatchJoin(position, songTitle, instrument);
+    }
 
-  // If not joined by song match, try forming a new group from solos
-  const autoGroupResult = joinedBySong ? null : tryAutoGroup();
+    // If not joined by song match, try forming a new group from solos
+    const autoGroupResult = joinedBySong ? null : await tryAutoGroup();
 
-  // Move incomplete groups to the bottom
-  reorderIncompleteGroups();
+    // Move incomplete groups to the bottom
+    await reorderIncompleteGroups();
 
-  broadcastUpdate();
-  res.json({ success: true, position, autoGrouped: autoGroupResult });
-});
+    await broadcastUpdate();
+    res.json({ success: true, position, autoGrouped: autoGroupResult });
+  })
+);
 
 // Register group
-app.post("/api/register/group", (req, res) => {
-  const { groupName, members, song, songs, songObjs } = req.body;
-  if (!groupName || !members || !members.length) {
-    return res
-      .status(400)
-      .json({ error: "Group name and at least one member required" });
-  }
-
-  // Normalize songs into array of {song, key}.
-  // songObjs = new format; songs = array of strings (legacy); song = single string (legacy)
-  let songList = [];
-  if (songObjs && songObjs.length) {
-    songList = songObjs
-      .filter((o) => o && o.song && o.song.trim() !== "")
-      .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }));
-  } else if (songs && songs.length) {
-    songList = songs.filter((s) => s && s.trim() !== "").map((s) => ({ song: s.trim(), key: "Original Version" }));
-  } else if (song && song.trim() !== "") {
-    songList = [{ song: song.trim(), key: "Original Version" }];
-  }
-  songList = songList.slice(0, 4);
-
-  if (songList.length > 0 && songList.length < 2) {
-    return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
-  }
-
-  const songValue = songList.length ? JSON.stringify(songList) : null;
-
-  const maxPos = db
-    .prepare("SELECT COALESCE(MAX(position), 0) as max FROM participants")
-    .get();
-  const position = maxPos.max + 1;
-
-  const stmt = db.prepare(
-    "INSERT INTO participants (group_name, name, instrument, song, entry_type, position) VALUES (?, ?, ?, ?, 'group', ?)"
-  );
-
-  const insertMany = db.transaction((members) => {
-    for (const m of members) {
-      stmt.run(groupName, m.name, m.instrument, songValue, position);
+app.post(
+  "/api/register/group",
+  wrap(async (req, res) => {
+    const { groupName, members, song, songs, songObjs } = req.body;
+    if (!groupName || !members || !members.length) {
+      return res
+        .status(400)
+        .json({ error: "Group name and at least one member required" });
     }
-  });
-  insertMany(members);
 
-  broadcastUpdate();
-  res.json({ success: true, position });
-});
+    // Normalize songs into array of {song, key}.
+    // songObjs = new format; songs = array of strings (legacy); song = single string (legacy)
+    let songList = [];
+    if (songObjs && songObjs.length) {
+      songList = songObjs
+        .filter((o) => o && o.song && o.song.trim() !== "")
+        .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }));
+    } else if (songs && songs.length) {
+      songList = songs.filter((s) => s && s.trim() !== "").map((s) => ({ song: s.trim(), key: "Original Version" }));
+    } else if (song && song.trim() !== "") {
+      songList = [{ song: song.trim(), key: "Original Version" }];
+    }
+    songList = songList.slice(0, 4);
+
+    if (songList.length > 0 && songList.length < 2) {
+      return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
+    }
+
+    const songValue = songList.length ? JSON.stringify(songList) : null;
+
+    const maxPos = await db.one(
+      "SELECT COALESCE(MAX(position), 0) as max FROM participants"
+    );
+    const position = maxPos.max + 1;
+
+    await db.tx(async (client) => {
+      for (const m of members) {
+        await client.query(
+          "INSERT INTO participants (group_name, name, instrument, song, entry_type, position) VALUES ($1, $2, $3, $4, 'group', $5)",
+          [groupName, m.name, m.instrument, songValue, position]
+        );
+      }
+    });
+
+    await broadcastUpdate();
+    res.json({ success: true, position });
+  })
+);
 
 // --- Admin endpoints (PIN protected) ---
 
 // Delete a participant (if group member, deletes entire group at that position)
-app.delete("/api/queue/:id", requirePin, (req, res) => {
-  const { id } = req.params;
-  const participant = db
-    .prepare("SELECT * FROM participants WHERE id = ?")
-    .get(id);
+app.delete(
+  "/api/queue/:id",
+  requirePin,
+  wrap(async (req, res) => {
+    const { id } = req.params;
+    const participant = await db.one(
+      "SELECT * FROM participants WHERE id = $1",
+      [id]
+    );
 
-  if (!participant) {
-    return res.status(404).json({ error: "Not found" });
-  }
+    if (!participant) {
+      return res.status(404).json({ error: "Not found" });
+    }
 
-  if (participant.entry_type === "group") {
-    // Delete entire group at this position
-    db.prepare(
-      "DELETE FROM participants WHERE position = ? AND group_name = ?"
-    ).run(participant.position, participant.group_name);
-  } else {
-    db.prepare("DELETE FROM participants WHERE id = ?").run(id);
-  }
+    if (participant.entry_type === "group") {
+      // Delete entire group at this position
+      await db.run(
+        "DELETE FROM participants WHERE position = $1 AND group_name = $2",
+        [participant.position, participant.group_name]
+      );
+    } else {
+      await db.run("DELETE FROM participants WHERE id = $1", [id]);
+    }
 
-  // Recompact positions
-  recompactPositions();
-  broadcastUpdate();
-  res.json({ success: true });
-});
+    // Recompact positions
+    await recompactPositions();
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Move position up
-app.patch("/api/queue/:position/move-up", requirePin, (req, res) => {
-  const position = parseInt(req.params.position);
-  if (position <= 1) {
-    return res.status(400).json({ error: "Already at the top" });
-  }
+app.patch(
+  "/api/queue/:position/move-up",
+  requirePin,
+  wrap(async (req, res) => {
+    const position = parseInt(req.params.position);
+    if (position <= 1) {
+      return res.status(400).json({ error: "Already at the top" });
+    }
 
-  // Find the position directly above
-  const above = db
-    .prepare(
-      "SELECT DISTINCT position FROM participants WHERE position < ? ORDER BY position DESC LIMIT 1"
-    )
-    .get(position);
+    // Find the position directly above
+    const above = await db.one(
+      "SELECT DISTINCT position FROM participants WHERE position < $1 ORDER BY position DESC LIMIT 1",
+      [position]
+    );
 
-  if (!above) {
-    return res.status(400).json({ error: "Already at the top" });
-  }
+    if (!above) {
+      return res.status(400).json({ error: "Already at the top" });
+    }
 
-  // Swap positions
-  const swapPositions = db.transaction(() => {
-    db.prepare(
-      "UPDATE participants SET position = -1 WHERE position = ?"
-    ).run(position);
-    db.prepare(
-      "UPDATE participants SET position = ? WHERE position = ?"
-    ).run(position, above.position);
-    db.prepare(
-      "UPDATE participants SET position = ? WHERE position = -1"
-    ).run(above.position);
-  });
-  swapPositions();
+    // Swap positions (use -1 as a temporary holding value)
+    await db.tx(async (client) => {
+      await client.query("UPDATE participants SET position = -1 WHERE position = $1", [position]);
+      await client.query("UPDATE participants SET position = $1 WHERE position = $2", [position, above.position]);
+      await client.query("UPDATE participants SET position = $1 WHERE position = -1", [above.position]);
+    });
 
-  broadcastUpdate();
-  res.json({ success: true });
-});
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Move position down
-app.patch("/api/queue/:position/move-down", requirePin, (req, res) => {
-  const position = parseInt(req.params.position);
+app.patch(
+  "/api/queue/:position/move-down",
+  requirePin,
+  wrap(async (req, res) => {
+    const position = parseInt(req.params.position);
 
-  // Find the position directly below
-  const below = db
-    .prepare(
-      "SELECT DISTINCT position FROM participants WHERE position > ? ORDER BY position ASC LIMIT 1"
-    )
-    .get(position);
+    // Find the position directly below
+    const below = await db.one(
+      "SELECT DISTINCT position FROM participants WHERE position > $1 ORDER BY position ASC LIMIT 1",
+      [position]
+    );
 
-  if (!below) {
-    return res.status(400).json({ error: "Already at the bottom" });
-  }
+    if (!below) {
+      return res.status(400).json({ error: "Already at the bottom" });
+    }
 
-  // Swap positions
-  const swapPositions = db.transaction(() => {
-    db.prepare(
-      "UPDATE participants SET position = -1 WHERE position = ?"
-    ).run(position);
-    db.prepare(
-      "UPDATE participants SET position = ? WHERE position = ?"
-    ).run(position, below.position);
-    db.prepare(
-      "UPDATE participants SET position = ? WHERE position = -1"
-    ).run(below.position);
-  });
-  swapPositions();
+    // Swap positions (use -1 as a temporary holding value)
+    await db.tx(async (client) => {
+      await client.query("UPDATE participants SET position = -1 WHERE position = $1", [position]);
+      await client.query("UPDATE participants SET position = $1 WHERE position = $2", [position, below.position]);
+      await client.query("UPDATE participants SET position = $1 WHERE position = -1", [below.position]);
+    });
 
-  broadcastUpdate();
-  res.json({ success: true });
-});
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Set status (played / missing) for a position
-app.patch("/api/queue/:position/status", requirePin, (req, res) => {
-  const position = parseInt(req.params.position);
-  const { status } = req.body;
+app.patch(
+  "/api/queue/:position/status",
+  requirePin,
+  wrap(async (req, res) => {
+    const position = parseInt(req.params.position);
+    const { status } = req.body;
 
-  if (!["played", "missing", "waiting"].includes(status)) {
-    return res.status(400).json({ error: "Status must be played, missing, or waiting" });
-  }
+    if (!["played", "missing", "waiting"].includes(status)) {
+      return res.status(400).json({ error: "Status must be played, missing, or waiting" });
+    }
 
-  db.prepare("UPDATE participants SET status = ? WHERE position = ?").run(
-    status,
-    position
-  );
+    await db.run("UPDATE participants SET status = $1 WHERE position = $2", [
+      status,
+      position,
+    ]);
 
-  broadcastUpdate();
-  res.json({ success: true });
-});
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Edit songs for a position (public — anyone can correct a mistake)
-app.patch("/api/queue/:position/songs", (req, res) => {
-  const position = parseInt(req.params.position);
-  const { songObjs } = req.body;
+app.patch(
+  "/api/queue/:position/songs",
+  wrap(async (req, res) => {
+    const position = parseInt(req.params.position);
+    const { songObjs } = req.body;
 
-  const members = db
-    .prepare("SELECT * FROM participants WHERE position = ? AND status = 'waiting'")
-    .all(position);
+    const members = await db.all(
+      "SELECT * FROM participants WHERE position = $1 AND status = 'waiting'",
+      [position]
+    );
 
-  if (!members.length) {
-    return res.status(404).json({ error: "Position not found or already played" });
-  }
+    if (!members.length) {
+      return res.status(404).json({ error: "Position not found or already played" });
+    }
 
-  const isGroup = members.length > 1 || members[0].group_name;
+    const isGroup = members.length > 1 || members[0].group_name;
 
-  // Normalize songs
-  let songList = (songObjs || [])
-    .filter((o) => o && o.song && o.song.trim() !== "")
-    .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }))
-    .slice(0, 4);
+    // Normalize songs
+    let songList = (songObjs || [])
+      .filter((o) => o && o.song && o.song.trim() !== "")
+      .map((o) => ({ song: o.song.trim(), key: (o.key || "Original Version").trim() || "Original Version" }))
+      .slice(0, 4);
 
-  // Groups need 2-4 songs (or 0 to clear); solos need 0-1
-  if (isGroup && songList.length === 1) {
-    return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
-  }
-  if (!isGroup && songList.length > 1) {
-    songList = songList.slice(0, 1);
-  }
+    // Groups need 2-4 songs (or 0 to clear); solos need 0-1
+    if (isGroup && songList.length === 1) {
+      return res.status(400).json({ error: "Groups must choose between 2 and 4 songs" });
+    }
+    if (!isGroup && songList.length > 1) {
+      songList = songList.slice(0, 1);
+    }
 
-  const songValue = songList.length ? JSON.stringify(songList) : null;
+    const songValue = songList.length ? JSON.stringify(songList) : null;
 
-  db.prepare("UPDATE participants SET song = ? WHERE position = ?").run(songValue, position);
+    await db.run("UPDATE participants SET song = $1 WHERE position = $2", [
+      songValue,
+      position,
+    ]);
 
-  broadcastUpdate();
-  res.json({ success: true });
-});
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Reset entire queue
-app.delete("/api/queue", requirePin, (req, res) => {
-  db.prepare("DELETE FROM participants").run();
-  broadcastUpdate();
-  res.json({ success: true });
-});
+app.delete(
+  "/api/queue",
+  requirePin,
+  wrap(async (req, res) => {
+    await db.run("DELETE FROM participants");
+    await broadcastUpdate();
+    res.json({ success: true });
+  })
+);
 
 // Repeat sign-up — re-queue someone who already played
-app.post("/api/register/repeat", (req, res) => {
-  const { name, instrument, song } = req.body;
-  if (!name || !instrument) {
-    return res.status(400).json({ error: "Name and instrument required" });
-  }
+app.post(
+  "/api/register/repeat",
+  wrap(async (req, res) => {
+    const { name, instrument, song } = req.body;
+    if (!name || !instrument) {
+      return res.status(400).json({ error: "Name and instrument required" });
+    }
 
-  const maxPos = db
-    .prepare("SELECT COALESCE(MAX(position), 0) as max FROM participants")
-    .get();
-  const position = maxPos.max + 1;
+    const maxPos = await db.one(
+      "SELECT COALESCE(MAX(position), 0) as max FROM participants"
+    );
+    const position = maxPos.max + 1;
 
-  db.prepare(
-    "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES (?, ?, ?, 'individual', ?)"
-  ).run(name, instrument, song || null, position);
+    await db.run(
+      "INSERT INTO participants (name, instrument, song, entry_type, position) VALUES ($1, $2, $3, 'individual', $4)",
+      [name, instrument, song || null, position]
+    );
 
-  // Try forming a new group from solos
-  const autoGroupResult = tryAutoGroup();
+    // Try forming a new group from solos
+    const autoGroupResult = await tryAutoGroup();
 
-  broadcastUpdate();
-  res.json({ success: true, position });
-});
+    await broadcastUpdate();
+    res.json({ success: true, position });
+  })
+);
 
 // Join an existing position (for "join artist" button in queue)
-app.post("/api/register/join/:position", (req, res) => {
-  const targetPosition = parseInt(req.params.position);
-  const { name, instrument } = req.body;
+app.post(
+  "/api/register/join/:position",
+  wrap(async (req, res) => {
+    const targetPosition = parseInt(req.params.position);
+    const { name, instrument } = req.body;
 
-  if (!name || !instrument) {
-    return res.status(400).json({ error: "Name and instrument required" });
-  }
+    if (!name || !instrument) {
+      return res.status(400).json({ error: "Name and instrument required" });
+    }
 
-  // Get members at this position
-  const members = db
-    .prepare("SELECT * FROM participants WHERE position = ? AND status = 'waiting'")
-    .all(targetPosition);
+    // Get members at this position
+    const members = await db.all(
+      "SELECT * FROM participants WHERE position = $1 AND status = 'waiting'",
+      [targetPosition]
+    );
 
-  if (!members.length) {
-    return res.status(404).json({ error: "Position not found or already played" });
-  }
+    if (!members.length) {
+      return res.status(404).json({ error: "Position not found or already played" });
+    }
 
-  // Check instrument limits
-  const normalizedInstr = normalizeInstrument(instrument);
-  const currentCount = members.filter(
-    (m) => normalizeInstrument(m.instrument) === normalizedInstr
-  ).length;
-  const max = getMaxForInstrument(normalizedInstr);
+    // Check instrument limits
+    const normalizedInstr = normalizeInstrument(instrument);
+    const currentCount = members.filter(
+      (m) => normalizeInstrument(m.instrument) === normalizedInstr
+    ).length;
+    const max = getMaxForInstrument(normalizedInstr);
 
-  if (currentCount >= max) {
-    return res.status(400).json({ error: "Instrument limit reached for this group" });
-  }
+    if (currentCount >= max) {
+      return res.status(400).json({ error: "Instrument limit reached for this group" });
+    }
 
-  const first = members[0];
-  const groupName = first.group_name || first.name + "'s Jam";
+    const first = members[0];
+    const groupName = first.group_name || first.name + "'s Jam";
 
-  // If this was a solo, convert it to a group first
-  if (!first.group_name) {
-    db.prepare(
-      "UPDATE participants SET group_name = ?, entry_type = 'group' WHERE id = ?"
-    ).run(groupName, first.id);
-  }
+    await db.tx(async (client) => {
+      // If this was a solo, convert it to a group first
+      if (!first.group_name) {
+        await client.query(
+          "UPDATE participants SET group_name = $1, entry_type = 'group' WHERE id = $2",
+          [groupName, first.id]
+        );
+      }
 
-  // Insert the new member into the same position and group
-  db.prepare(
-    "INSERT INTO participants (group_name, name, instrument, song, entry_type, position, status) VALUES (?, ?, ?, ?, 'group', ?, 'waiting')"
-  ).run(groupName, name, instrument, first.song, targetPosition);
+      // Insert the new member into the same position and group
+      await client.query(
+        "INSERT INTO participants (group_name, name, instrument, song, entry_type, position, status) VALUES ($1, $2, $3, $4, 'group', $5, 'waiting')",
+        [groupName, name, instrument, first.song, targetPosition]
+      );
+    });
 
-  // Check if group is now complete and reorder
-  reorderIncompleteGroups();
+    // Check if group is now complete and reorder
+    await reorderIncompleteGroups();
 
-  broadcastUpdate();
-  res.json({ success: true, position: targetPosition, groupName });
-});
+    await broadcastUpdate();
+    res.json({ success: true, position: targetPosition, groupName });
+  })
+);
 
 // --- Auto-grouping logic ---
 // Instrument normalization map (all translations → English key)
@@ -547,7 +594,7 @@ function getMaxForInstrument(instr) {
  * When a solo with a song registers, check if there's a waiting group
  * with the same song that needs this instrument. If so, add the solo to that group.
  */
-function trySongMatchJoin(soloPosition, song, instrument) {
+async function trySongMatchJoin(soloPosition, song, instrument) {
   const normalizedInstr = normalizeInstrument(instrument);
   const max = getMaxForInstrument(normalizedInstr);
 
@@ -555,26 +602,26 @@ function trySongMatchJoin(soloPosition, song, instrument) {
   const soloSongLower = song.toLowerCase();
 
   // Find all waiting groups/entries with a song
-  const positions = db
-    .prepare(
-      "SELECT DISTINCT position FROM participants WHERE status = 'waiting' AND song IS NOT NULL AND song != '' AND position != ?"
-    )
-    .all(soloPosition);
+  const positions = await db.all(
+    "SELECT DISTINCT position FROM participants WHERE status = 'waiting' AND song IS NOT NULL AND song != '' AND position != $1",
+    [soloPosition]
+  );
 
   for (const { position } of positions) {
-    const members = db
-      .prepare("SELECT * FROM participants WHERE position = ?")
-      .all(position);
+    const members = await db.all(
+      "SELECT * FROM participants WHERE position = $1",
+      [position]
+    );
 
     const first = members[0];
-    if (!first.song) continue;
+    if (!first || !first.song) continue;
 
     // Check if songs match (song data is JSON array of {song, key} objects)
     let groupSongs = [];
     try {
       const parsed = JSON.parse(first.song);
       if (Array.isArray(parsed)) {
-        groupSongs = parsed.map(item =>
+        groupSongs = parsed.map((item) =>
           (typeof item === "string" ? item : item.song).toLowerCase()
         );
       }
@@ -594,19 +641,23 @@ function trySongMatchJoin(soloPosition, song, instrument) {
     // Match! Move the solo into this group
     const groupName = first.group_name || first.name + "'s Jam";
 
-    // If the target was a solo, convert it to a group first
-    if (!first.group_name) {
-      db.prepare(
-        "UPDATE participants SET group_name = ?, entry_type = 'group' WHERE id = ?"
-      ).run(groupName, first.id);
-    }
+    await db.tx(async (client) => {
+      // If the target was a solo, convert it to a group first
+      if (!first.group_name) {
+        await client.query(
+          "UPDATE participants SET group_name = $1, entry_type = 'group' WHERE id = $2",
+          [groupName, first.id]
+        );
+      }
 
-    // Update the new solo to join this group
-    db.prepare(
-      "UPDATE participants SET group_name = ?, entry_type = 'group', position = ?, song = ? WHERE position = ? AND entry_type = 'individual' AND group_name IS NULL"
-    ).run(groupName, position, first.song, soloPosition);
+      // Update the new solo to join this group
+      await client.query(
+        "UPDATE participants SET group_name = $1, entry_type = 'group', position = $2, song = $3 WHERE position = $4 AND entry_type = 'individual' AND group_name IS NULL",
+        [groupName, position, first.song, soloPosition]
+      );
+    });
 
-    recompactPositions();
+    await recompactPositions();
     console.log(`Song-matched solo (${instrument}) into "${groupName}" at position ${position} for song "${song}"`);
     return true;
   }
@@ -635,13 +686,11 @@ function meetsMinimum(grouped) {
   );
 }
 
-function tryAutoGroup() {
+async function tryAutoGroup() {
   // Get all ungrouped solo individuals
-  const solos = db
-    .prepare(
-      "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
-    )
-    .all();
+  const solos = await db.all(
+    "SELECT * FROM participants WHERE entry_type = 'individual' AND group_name IS NULL ORDER BY position ASC"
+  );
 
   if (solos.length < REQUIRED_INSTRUMENTS.length) return null;
 
@@ -692,10 +741,7 @@ function tryAutoGroup() {
       }
     }
 
-    // Also add any same-song extras that didn't fit initially (e.g. 2nd guitar)
-    // (already handled above in the first loop)
-
-    return commitGroup(grouped, songMembers[0].song);
+    return await commitGroup(grouped, songMembers[0].song);
   }
 
   // Strategy 2: No song match worked — try forming from no-song solos only
@@ -707,7 +753,7 @@ function tryAutoGroup() {
   }
 
   if (meetsMinimum(grouped)) {
-    return commitGroup(grouped, getRandomBluesSuggestion());
+    return await commitGroup(grouped, getRandomBluesSuggestion());
   }
 
   return null;
@@ -723,27 +769,23 @@ function getRandomBluesSuggestion() {
   return `${style} Blues in ${key}`;
 }
 
-function commitGroup(grouped, song) {
+async function commitGroup(grouped, song) {
   const groupPosition = Math.min(...grouped.map((g) => g.position));
-  const groupNumber = db
-    .prepare(
-      "SELECT COUNT(DISTINCT group_name) as cnt FROM participants WHERE group_name LIKE 'Jam Band %'"
-    )
-    .get();
+  const groupNumber = await db.one(
+    "SELECT COUNT(DISTINCT group_name)::int as cnt FROM participants WHERE group_name LIKE 'Jam Band %'"
+  );
   const groupName = `Jam Band #${(groupNumber.cnt || 0) + 1}`;
 
-  const updateStmt = db.prepare(
-    "UPDATE participants SET group_name = ?, entry_type = 'group', position = ?, song = COALESCE(?, song) WHERE id = ?"
-  );
-
-  const doGroup = db.transaction(() => {
+  await db.tx(async (client) => {
     for (const member of grouped) {
-      updateStmt.run(groupName, groupPosition, song, member.id);
+      await client.query(
+        "UPDATE participants SET group_name = $1, entry_type = 'group', position = $2, song = COALESCE($3, song) WHERE id = $4",
+        [groupName, groupPosition, song, member.id]
+      );
     }
   });
-  doGroup();
 
-  recompactPositions();
+  await recompactPositions();
 
   console.log(
     `Auto-grouped ${grouped.length} solos into "${groupName}" at position ${groupPosition}${song ? ` (song: ${song})` : ""}`
@@ -753,48 +795,47 @@ function commitGroup(grouped, song) {
 }
 
 // --- Helpers ---
-function recompactPositions() {
-  const positions = db
-    .prepare(
-      "SELECT DISTINCT position FROM participants ORDER BY position ASC"
-    )
-    .all();
-
-  const update = db.prepare(
-    "UPDATE participants SET position = ? WHERE position = ?"
+async function recompactPositions() {
+  const positions = await db.all(
+    "SELECT DISTINCT position FROM participants ORDER BY position ASC"
   );
 
-  const compact = db.transaction(() => {
-    positions.forEach((row, idx) => {
+  await db.tx(async (client) => {
+    for (let idx = 0; idx < positions.length; idx++) {
+      const row = positions[idx];
       const newPos = idx + 1;
       if (row.position !== newPos) {
-        update.run(newPos, row.position);
+        await client.query(
+          "UPDATE participants SET position = $1 WHERE position = $2",
+          [newPos, row.position]
+        );
       }
-    });
+    }
   });
-  compact();
 }
 
 /**
  * Reorder: move incomplete groups (waiting, missing Guitar/Bass/Drums) to the bottom.
  * Complete groups and played/missing entries stay in their current order.
  */
-function reorderIncompleteGroups() {
+async function reorderIncompleteGroups() {
   // Get all distinct positions with their status and members
-  const positions = db
-    .prepare("SELECT DISTINCT position FROM participants ORDER BY position ASC")
-    .all()
-    .map((r) => r.position);
+  const positionsRows = await db.all(
+    "SELECT DISTINCT position FROM participants ORDER BY position ASC"
+  );
+  const positions = positionsRows.map((r) => r.position);
 
   const complete = [];
   const incomplete = [];
 
   for (const pos of positions) {
-    const members = db
-      .prepare("SELECT * FROM participants WHERE position = ?")
-      .all(pos);
+    const members = await db.all(
+      "SELECT * FROM participants WHERE position = $1",
+      [pos]
+    );
 
     const first = members[0];
+    if (!first) continue;
 
     // Already played or missing — don't move
     if (first.status === "played" || first.status === "missing") {
@@ -818,33 +859,48 @@ function reorderIncompleteGroups() {
   // New order: complete positions first, then incomplete
   const newOrder = [...complete, ...incomplete];
 
-  const update = db.prepare(
-    "UPDATE participants SET position = ? WHERE position = ?"
-  );
-
-  // Use negative temp positions to avoid collisions
-  const reorder = db.transaction(() => {
-    newOrder.forEach((oldPos, idx) => {
-      update.run(-(idx + 1), oldPos);
-    });
-    // Now flip negatives to positives
-    newOrder.forEach((_, idx) => {
-      update.run(idx + 1, -(idx + 1));
-    });
+  // Use negative temp positions to avoid collisions, then flip to positives
+  await db.tx(async (client) => {
+    for (let idx = 0; idx < newOrder.length; idx++) {
+      await client.query("UPDATE participants SET position = $1 WHERE position = $2", [
+        -(idx + 1),
+        newOrder[idx],
+      ]);
+    }
+    for (let idx = 0; idx < newOrder.length; idx++) {
+      await client.query("UPDATE participants SET position = $1 WHERE position = $2", [
+        idx + 1,
+        -(idx + 1),
+      ]);
+    }
   });
-  reorder();
 }
 
-app.listen(PORT, () => {
-  console.log(`Blues Jam App running at http://localhost:${PORT}`);
-  console.log(`Admin PIN: ${ADMIN_PIN}`);
-
-  // Self-ping to prevent Render free tier from sleeping (pings every 10 minutes)
-  if (process.env.RENDER_EXTERNAL_URL) {
-    const url = process.env.RENDER_EXTERNAL_URL;
-    setInterval(() => {
-      fetch(url).catch(() => {});
-      console.log(`[keep-alive] pinged ${url}`);
-    }, 10 * 60 * 1000); // every 10 minutes
-  }
+// Express error handler — any error thrown in a wrapped async route lands here.
+app.use((err, req, res, next) => {
+  console.error("Request error:", err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Internal server error" });
 });
+
+// Initialize the database schema, then start the server.
+db.init()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Blues Jam App running at http://localhost:${PORT}`);
+      console.log(`Admin PIN: ${ADMIN_PIN}`);
+
+      // Self-ping to prevent Render free tier from sleeping (pings every 10 minutes)
+      if (process.env.RENDER_EXTERNAL_URL) {
+        const url = process.env.RENDER_EXTERNAL_URL;
+        setInterval(() => {
+          fetch(url).catch(() => {});
+          console.log(`[keep-alive] pinged ${url}`);
+        }, 10 * 60 * 1000); // every 10 minutes
+      }
+    });
+  })
+  .catch((err) => {
+    console.error("FATAL: failed to initialize database:", err);
+    process.exit(1);
+  });

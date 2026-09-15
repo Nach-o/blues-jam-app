@@ -249,7 +249,12 @@
     }
 
     function formatTime(utcStr) {
-      const d = new Date(utcStr + "Z");
+      // Postgres returns ISO strings (with timezone, e.g. "...T20:30:00.000Z"),
+      // while legacy SQLite returned naive UTC like "2024-01-01 20:30:00".
+      // Only append "Z" for the naive form so it's parsed as UTC.
+      var s = String(utcStr);
+      var isIso = s.indexOf("T") !== -1 || /[Zz]|[+-]\d\d:?\d\d$/.test(s);
+      const d = new Date(isIso ? s : s + "Z");
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
